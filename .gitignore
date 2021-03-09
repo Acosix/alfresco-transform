@@ -1,0 +1,14 @@
+target/
+bin/
+.settings/
+.classpath
+.project
+
+dependency-reduced-pom.xml
+
+# for any SSL related files used in Docker Compose-based testing
+*.jks
+*.pem
+*.p12
+*.crt
+*.cer

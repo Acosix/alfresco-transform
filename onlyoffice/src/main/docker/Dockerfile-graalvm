@@ -1,0 +1,10 @@
+FROM ${docker.image.organisation}/alfresco-transform-base-graalvm:${project.version}
+
+COPY maven/${project.build.finalName}.jar /var/lib/acosix-transformer/transformer-app.jar
+
+LABEL vendor="${docker.labels.vendor}" \
+   ${docker.labels.namespace}.version="${project.version.majorVersion}.${project.version.minorVersion}.${project.version.incrementalVersion}" \
+   ${docker.labels.namespace}.is-beta="" \
+   ${docker.labels.namespace}.is-production="" \
+   ${docker.labels.namespace}.release-date="${docker.labels.release-date}" \
+   ${docker.labels.namespace}.maintainer="${docker.labels.maintainer}"

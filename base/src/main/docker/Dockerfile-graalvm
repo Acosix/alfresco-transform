@@ -1,0 +1,20 @@
+FROM acosix/baseimage-java11-graalvm:20210309
+
+RUN mkdir -p /var/lib/acosix-transformer /var/log/acosix-transformer \
+  && groupadd -g 12000 transformer \
+  && useradd -s /bin/false -b /var/lib/acosix-transformer -g transformer -u 12000 -M transformer \
+  && chown transformer:transformer /var/log/acosix-transformer
+
+COPY initTransformer.sh startTransformer.sh logback-debug.xml /var/lib/acosix-transformer/
+
+RUN mkdir /etc/service/acosix-transformer \
+  && ln -s /var/lib/acosix-transformer/initTransformer.sh /etc/my_init.d/20_initTransformer.sh \
+  && ln -s /var/lib/acosix-transformer/startTransformer.sh /etc/service/acosix-transformer/run \
+  && chmod +x /etc/my_init.d/20_initTransformer.sh /etc/service/acosix-transformer/run
+
+LABEL vendor="${docker.labels.vendor}" \
+   ${docker.labels.namespace}.version="${project.version.majorVersion}.${project.version.minorVersion}.${project.version.incrementalVersion}" \
+   ${docker.labels.namespace}.is-beta="" \
+   ${docker.labels.namespace}.is-production="" \
+   ${docker.labels.namespace}.release-date="${docker.labels.release-date}" \
+   ${docker.labels.namespace}.maintainer="${docker.labels.maintainer}"

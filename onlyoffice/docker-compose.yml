@@ -1,0 +1,192 @@
+
+services:
+    transformer-openjdk:
+        image: acosix/alfresco-transform-onlyoffice:latest
+        ports:
+            - 8080:8080
+        networks:
+            transformers:
+                aliases:
+                    - transformer-openjdk
+        environment:
+            - DEBUG=true
+            - T_onlyoffice.conversionUrl=http://onlyoffice-documentserver/ConvertService.ashx
+            - T_application.host=transformer-openjdk
+        restart: unless-stopped
+
+    transformer-graalvm:
+        image: acosix/alfresco-transform-onlyoffice-graalvm:latest
+        ports:
+            - 8081:8080
+        networks:
+            transformers:
+                aliases:
+                    - transformer-graalvm
+        environment:
+            - T_onlyoffice.conversionUrl=http://onlyoffice-documentserver/ConvertService.ashx
+            - T_application.host=transformer-graalvm
+        restart: unless-stopped
+
+    transformer-openjdk-token:
+        image: acosix/alfresco-transform-onlyoffice:latest
+        ports:
+            - 8000:8000
+            - 8180:8080
+        networks:
+            transformers:
+                aliases:
+                    - transformer-openjdk-token
+        environment:
+            - DEBUG=true
+            - T_onlyoffice.conversionUrl=http://onlyoffice-documentserver-token/ConvertService.ashx
+            - T_application.host=transformer-openjdk-token
+            - T_onlyoffice.jwtSecret=}@jqK3X.]ZP^2=35
+        restart: unless-stopped
+
+    transformer-graalvm-token:
+        image: acosix/alfresco-transform-onlyoffice-graalvm:latest
+        ports:
+            - 8181:8080
+        networks:
+            transformers:
+                aliases:
+                    - transformer-graalvm-token
+        environment:
+            - T_onlyoffice.conversionUrl=http://onlyoffice-documentserver-token/ConvertService.ashx
+            - T_application.host=transformer-graalvm-token
+            - T_onlyoffice.jwtSecret=}@jqK3X.]ZP^2=35
+        restart: unless-stopped
+
+    transformer-openjdk-ssl:
+        image: acosix/alfresco-transform-onlyoffice:latest
+        ports:
+            - 8443:8443
+        networks:
+            transformers:
+                aliases:
+                    - transformer-openjdk-ssl
+        volumes:
+            - ./keystore.jks:/var/lib/acosix-transformer/keystore.jks:ro
+            - ./truststore.jks:/var/lib/acosix-transformer/truststore.jks:ro
+        environment:
+            - DEBUG=true
+            - T_onlyoffice.conversionUrl=http://onlyoffice-documentserver/ConvertService.ashx
+            - T_application.host=transformer-openjdk-ssl
+            - T_application.ssl=true
+            - T_application.ssl.keystore.path=/var/lib/acosix-transformer/keystore.jks
+            - T_application.ssl.keystore.type=JKS
+            - T_application.ssl.keystore.password=selfsigned
+            - T_application.ssl.truststore.path=/var/lib/acosix-transformer/truststore.jks
+            - T_application.ssl.truststore.type=JKS
+            - T_application.ssl.truststore.password=selfsigned
+            - T_application.ssl.certAlias=selfsigned
+        restart: unless-stopped
+
+    transformer-graalvm-ssl:
+        image: acosix/alfresco-transform-onlyoffice-graalvm:latest
+        ports:
+            - 8444:8443
+        networks:
+            transformers:
+                aliases:
+                    - transformer-graalvm
+        volumes:
+            - ./keystore.jks:/var/lib/acosix-transformer/keystore.jks:ro
+            - ./truststore.jks:/var/lib/acosix-transformer/truststore.jks:ro
+        environment:
+            - T_onlyoffice.conversionUrl=http://onlyoffice-documentserver/ConvertService.ashx
+            - T_application.host=transformer-graalvm-ssl
+            - T_application.ssl=true
+            - T_application.ssl.keystore.path=/var/lib/acosix-transformer/keystore.jks
+            - T_application.ssl.keystore.type=JKS
+            - T_application.ssl.keystore.password=selfsigned
+            - T_application.ssl.truststore.path=/var/lib/acosix-transformer/truststore.jks
+            - T_application.ssl.truststore.type=JKS
+            - T_application.ssl.truststore.password=selfsigned
+            - T_application.ssl.certAlias=selfsigned
+        restart: unless-stopped
+
+    postgres:
+        image: acosix/baseimage-postgresql:latest
+        volumes:
+            - pgsql:/srv/postgresql
+        networks:
+            onlyoffice:
+                aliases:
+                    - postgres
+        environment:
+            - PG_PASS=local-dev
+            - PGCONF_max_connections=200
+            - PGCONF_track_io_timing=on
+            - PG_USER_onlyoffice=onlyoffice
+            - PG_PASS_onlyoffice=onlyoffice
+            - PG_DB_onlyoffice=onlyoffice
+            - PG_USER_onlyoffice2=onlyoffice2
+            - PG_PASS_onlyoffice2=onlyoffice2
+            - PG_DB_onlyoffice2=onlyoffice2
+        restart: unless-stopped
+
+    onlyoffice-rabbitmq:
+        image: rabbitmq:3.8.9
+        networks:
+            onlyoffice:
+                aliases:
+                    - onlyoffice-rabbitmq
+        restart: unless-stopped
+
+    onlyoffice-documentserver:
+        image: onlyoffice/documentserver:6.2.0
+        networks:
+            onlyoffice:
+                aliases:
+                    - onlyoffice-documentserver
+            transformers:
+                aliases:
+                    - onlyoffice-documentserver
+        depends_on:
+            - postgres
+            - onlyoffice-rabbitmq
+        environment:
+            - DB_TYPE=postgres
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - DB_NAME=onlyoffice
+            - DB_USER=onlyoffice
+            - DB_PWD=onlyoffice
+            - AMQP_URI=amqp://guest:guest@onlyoffice-rabbitmq
+        restart: unless-stopped
+        stop_grace_period: 60s
+
+    onlyoffice-documentserver-token:
+        image: onlyoffice/documentserver:6.2.0
+        networks:
+            onlyoffice:
+                aliases:
+                    - onlyoffice-documentserver-token
+            transformers:
+                aliases:
+                    - onlyoffice-documentserver-token
+        depends_on:
+            - postgres
+            - onlyoffice-rabbitmq
+        environment:
+            - DB_TYPE=postgres
+            - DB_HOST=postgres
+            - DB_PORT=5432
+            - DB_NAME=onlyoffice2
+            - DB_USER=onlyoffice2
+            - DB_PWD=onlyoffice2
+            - AMQP_URI=amqp://guest:guest@onlyoffice-rabbitmq
+            - JWT_ENABLED=true
+            - JWT_SECRET=}@jqK3X.]ZP^2=35
+            - JWT_HEADER=Authorization
+            - JWT_IN_BODY=true
+        restart: unless-stopped
+        stop_grace_period: 60s
+
+networks:
+    transformers:
+    onlyoffice:
+
+volumes:
+    pgsql:

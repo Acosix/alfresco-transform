@@ -1,0 +1,69 @@
+
+services:
+    transformer-openjdk:
+        image: acosix/alfresco-transform-base:latest
+        ports:
+            - 8080:8080
+        # base image actually does not contain an app JAR, which is included only in specific sub-images
+        volumes:
+            - ./target/de.acosix.alfresco.transform.base-1.0.0-SNAPSHOT.jar:/var/lib/acosix-transformer/transformer-app.jar:ro
+        environment:
+            - T_application.host=transformer-openjdk
+        restart: unless-stopped
+
+    transformer-graalvm:
+        image: acosix/alfresco-transform-base-graalvm:latest
+        ports:
+            - 8081:8080
+        # base image actually does not contain an app JAR, which is included only in specific sub-images
+        volumes:
+            - ./target/de.acosix.alfresco.transform.base-1.0.0-SNAPSHOT.jar:/var/lib/acosix-transformer/transformer-app.jar:ro
+            
+        environment:
+            - T_application.host=transformer-graalvm
+        restart: unless-stopped
+
+    transformer-openjdk-ssl:
+        image: acosix/alfresco-transform-base:latest
+        ports:
+            - 8443:8443
+        # base image actually does not contain an app JAR, which is included only in specific sub-images
+        # keystores not in git - to be generated locally
+        # note: due to different default in Ubuntu 18.04 LTS, we need to explictly set JKS as type
+        volumes:
+            - ./target/de.acosix.alfresco.transform.base-1.0.0-SNAPSHOT.jar:/var/lib/acosix-transformer/transformer-app.jar:ro
+            - ./keystore.jks:/var/lib/acosix-transformer/keystore.jks:ro
+            - ./truststore.jks:/var/lib/acosix-transformer/truststore.jks:ro
+        environment:
+            - T_application.host=transformer-openjdk-ssl
+            - T_application.ssl=true
+            - T_application.ssl.keystore.path=/var/lib/acosix-transformer/keystore.jks
+            - T_application.ssl.keystore.type=JKS
+            - T_application.ssl.keystore.password=selfsigned
+            - T_application.ssl.truststore.path=/var/lib/acosix-transformer/truststore.jks
+            - T_application.ssl.truststore.type=JKS
+            - T_application.ssl.truststore.password=selfsigned
+            - T_application.ssl.certAlias=selfsigned
+        restart: unless-stopped
+
+    transformer-graalvm-ssl:
+        image: acosix/alfresco-transform-base-graalvm:latest
+        ports:
+            - 8444:8443
+        # base image actually does not contain an app JAR, which is included only in specific sub-images
+        # keystore not in git - to be generated locally
+        volumes:
+            - ./target/de.acosix.alfresco.transform.base-1.0.0-SNAPSHOT.jar:/var/lib/acosix-transformer/transformer-app.jar:ro
+            - ./keystore.jks:/var/lib/acosix-transformer/keystore.jks:ro
+            - ./truststore.jks:/var/lib/acosix-transformer/truststore.jks:ro
+        environment:
+            - T_application.host=transformer-graalvm-ssl
+            - T_application.ssl=true
+            - T_application.ssl.keystore.path=/var/lib/acosix-transformer/keystore.jks
+            - T_application.ssl.keystore.type=JKS
+            - T_application.ssl.keystore.password=selfsigned
+            - T_application.ssl.truststore.path=/var/lib/acosix-transformer/truststore.jks
+            - T_application.ssl.truststore.type=JKS
+            - T_application.ssl.truststore.password=selfsigned
+            - T_application.ssl.certAlias=selfsigned
+        restart: unless-stopped
