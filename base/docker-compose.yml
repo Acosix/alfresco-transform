@@ -6,7 +6,7 @@ services:
             - 8080:8080
         # base image actually does not contain an app JAR, which is included only in specific sub-images
         volumes:
-            - ./target/de.acosix.alfresco.transform.base-1.0.0-SNAPSHOT.jar:/var/lib/acosix-transformer/transformer-app.jar:ro
+            - ./target/de.acosix.alfresco.transform.base-0.2.0-SNAPSHOT-shaded.jar:/var/lib/acosix-transformer/transformer-app.jar:ro
         environment:
             - T_application.host=transformer-openjdk
         restart: unless-stopped
@@ -17,7 +17,7 @@ services:
             - 8081:8080
         # base image actually does not contain an app JAR, which is included only in specific sub-images
         volumes:
-            - ./target/de.acosix.alfresco.transform.base-1.0.0-SNAPSHOT.jar:/var/lib/acosix-transformer/transformer-app.jar:ro
+            - ./target/de.acosix.alfresco.transform.base-0.2.0-SNAPSHOT-shaded.jar:/var/lib/acosix-transformer/transformer-app.jar:ro
             
         environment:
             - T_application.host=transformer-graalvm
@@ -31,7 +31,7 @@ services:
         # keystores not in git - to be generated locally
         # note: due to different default in Ubuntu 18.04 LTS, we need to explictly set JKS as type
         volumes:
-            - ./target/de.acosix.alfresco.transform.base-1.0.0-SNAPSHOT.jar:/var/lib/acosix-transformer/transformer-app.jar:ro
+            - ./target/de.acosix.alfresco.transform.base-0.2.0-SNAPSHOT-shaded.jar:/var/lib/acosix-transformer/transformer-app.jar:ro
             - ./keystore.jks:/var/lib/acosix-transformer/keystore.jks:ro
             - ./truststore.jks:/var/lib/acosix-transformer/truststore.jks:ro
         environment:
@@ -53,7 +53,7 @@ services:
         # base image actually does not contain an app JAR, which is included only in specific sub-images
         # keystore not in git - to be generated locally
         volumes:
-            - ./target/de.acosix.alfresco.transform.base-1.0.0-SNAPSHOT.jar:/var/lib/acosix-transformer/transformer-app.jar:ro
+            - ./target/de.acosix.alfresco.transform.base-0.2.0-SNAPSHOT-shaded.jar:/var/lib/acosix-transformer/transformer-app.jar:ro
             - ./keystore.jks:/var/lib/acosix-transformer/keystore.jks:ro
             - ./truststore.jks:/var/lib/acosix-transformer/truststore.jks:ro
         environment:

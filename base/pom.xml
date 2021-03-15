@@ -21,7 +21,7 @@
     <parent>
         <groupId>de.acosix.alfresco.transform</groupId>
         <artifactId>de.acosix.alfresco.transform.parent</artifactId>
-        <version>0.1.0</version>
+        <version>0.2.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>de.acosix.alfresco.transform.base</artifactId>
@@ -187,6 +187,8 @@
                             <configuration>
                                 <createSourcesJar>true</createSourcesJar>
                                 <shadeSourcesContent>true</shadeSourcesContent>
+                                <shadedArtifactAttached>true</shadedArtifactAttached>
+                                <shadedClassifierName>shaded</shadedClassifierName>
                                 <keepDependenciesWithProvidedScope>false</keepDependenciesWithProvidedScope>
                                 <artifactSet>
                                     <includes>

@@ -1,6 +1,6 @@
 FROM ${docker.image.organisation}/alfresco-transform-base:${project.version}
 
-COPY maven/${project.build.finalName}.jar /var/lib/acosix-transformer/transformer-app.jar
+COPY maven/${project.build.finalName}-shaded.jar /var/lib/acosix-transformer/transformer-app.jar
 
 LABEL vendor="${docker.labels.vendor}" \
    ${docker.labels.namespace}.version="${project.version.majorVersion}.${project.version.minorVersion}.${project.version.incrementalVersion}" \

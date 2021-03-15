@@ -80,7 +80,7 @@ public class ContextImpl implements Context
         for (final String propertyName : propertyNames)
         {
             // use prefix to differentiate from other envs / avoid accidental overlap
-            final String effectivePropertyName = "TENV_" + propertyName;
+            final String effectivePropertyName = "T_" + propertyName;
             final String value = System.getenv(effectivePropertyName);
             if (value != null)
             {

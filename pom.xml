@@ -20,7 +20,7 @@
 
     <groupId>de.acosix.alfresco.transform</groupId>
     <artifactId>de.acosix.alfresco.transform.parent</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Acosix Alfresco Transform - Parent</name>
@@ -406,7 +406,7 @@
                                         <inline>
                                             <files>
                                                 <file>
-                                                    <source>${project.build.directory}/${project.build.finalName}.jar</source>
+                                                    <source>${project.build.directory}/${project.build.finalName}-shaded.jar</source>
                                                 </file>
                                             </files>
                                         </inline>
@@ -426,7 +426,7 @@
                                         <inline>
                                             <files>
                                                 <file>
-                                                    <source>${project.build.directory}/${project.build.finalName}.jar</source>
+                                                    <source>${project.build.directory}/${project.build.finalName}-shaded.jar</source>
                                                 </file>
                                             </files>
                                         </inline>
@@ -446,7 +446,7 @@
                                         <inline>
                                             <files>
                                                 <file>
-                                                    <source>${project.build.directory}/${project.build.finalName}.jar</source>
+                                                    <source>${project.build.directory}/${project.build.finalName}-shaded.jar</source>
                                                 </file>
                                             </files>
                                         </inline>
