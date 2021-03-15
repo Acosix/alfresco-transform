@@ -1,0 +1,87 @@
+# RenditionService2 Issues
+
+The RenditionService2 is the primary service API of Alfresco's reworked transformer and rendition framework from Alfresco 6.0 / 6.1 onwards. It aims to move transformations out of process from the Alfresco Content Service and moving predominantly to asynchronous processing, most markedly with the Enterprise Edition-only Transformation Service router using ActiveMQ-based events to handle interactions between ACS, the router and transformers. For Alfresco Community Edition, so called "Local Transforms" are provided, which call transformers in decoupled threads via HTTP.
+
+Unfortunately, the entire framework around RenditionService2 has been developed and released in an extremely piecemeal - or, to use a developer marketing buzzword, agile - fashion, with each iteration missing features or sporting significant issues, which partially would be addressed in the first Enterprise-only hot fixes / service packs after a release, leaving Community users out to dry until the next major version. After working on implementing my first non-trivial custom transformer and integrating that into a regular customer use case, dealing with those kinds issues left, right and center, I can only summarise that the framework around RenditionService2 ranks among to most botched functionality Alfresco has managed to deliver in my time working with the software.
+
+## Non-Public API
+
+The RenditionService2 handling is supposed to replace previously existing transformation capabilities which existed via `ContentService`, which was marked as a public Java API. The now deprecated transformation operations were moved to a `ContentTransformService` super-interface which is no longer marked as such. Similarly, the new `RenditionService2` interface also does not bear the mark of a public Java API annotation. This essentially leaves extension developers without a reliable / supported API to trigger transformations from even trivial extensions like rules / actions. While it may be understandable that Alfresco is pursuing their strategy of moving non-trivial extensions out-of-process to try and reduce their support efforts, this stance of not even providing a minimal supported API seems to be excessive / extreme.
+
+
+## Not fully open source
+
+At the time of writing, at least one component / library in the framework around RenditionService2 is not available as a public source repository.
+
+- `alfresco-transform-model` provides some general DTO / entity types as well as abstract registry handling - the JAR's POM XML lists the project as being on GitHub, but the [link](https://github.com/Alfresco/alfresco-transform-model) only yields a 404, which may indicate a private repository
+
+## Source limits based on last added transformer
+
+When multiple transformers support the transformation from mimetype A to mimetype B, the transformer which was last added to the Repository's internal transformer registry state actually sets the effective limit on the source file's size. This is due to an extremely naive implementation in the `alfresco-transform-model` library (which I cannot reference with a link due to not being properly open source; see above), which simply retrieves all definitions of supported transformations for the pair of source / target type, and uses the last entry in the list to retrieve the limit.
+
+The following snippet from the source attachment shows the naive implementation:
+
+```java
+    @Override
+    public long findMaxSize(final String sourceMimetype, final String targetMimetype,
+        final Map<String, String> actualOptions, final String renditionName)
+    {
+        final List<SupportedTransform> supportedTransforms = retrieveTransformListBySize(getData(),
+            sourceMimetype, targetMimetype, actualOptions, renditionName);
+        return supportedTransforms.isEmpty() ? 0 :
+               supportedTransforms.get(supportedTransforms.size() - 1).getMaxSourceSizeBytes();
+    }
+```
+
+Technically, the order in which transformers are added for the Local Transform registry is based on the order in which the transformer application URLs are read into the Alfresco global properties configuration bean. With this at hand, users / administrators may be able to partially work around the issue by listing transformers in reverse order of size limits, so the transformer with the highest limit is added last. But this workaround quickly reaches the end of its usefulness when there is a lively mix of higher/lower limits between transformers.
+
+## TransformClient ThreadLocal usage
+
+This is an amazing instance of an API designed around the principle of "why bother writing good code when we can make the caller responsible". The [`TransformClient` API](https://github.com/Alfresco/alfresco-community-repo/blob/9.0/repository/src/main/java/org/alfresco/repo/rendition2/TransformClient.java#L56) specifically mentions that the `transform` operation may only be called after a successful call of `checkSupported` on the same thread. So any implementation of the interface is forced to used some sort of thread- or request local state, as some of the parameters used in `checkSupported` are relevant to pick the proper transformation in the actual `transform` call. Now why there isn't just a combined `transformIfSupported` operation, is beyond me.
+
+Issues:
+- Threads are reused across multiple HTTP requests, and the thread local state is not reset at the end of `transform` in any of the default implementations (e.g. [SwitchingTransformClient](https://github.com/Alfresco/alfresco-community-repo/blob/9.0/repository/src/main/java/org/alfresco/repo/rendition2/SwitchingTransformClient.java#L71) or [LocalTransformClient](https://github.com/Alfresco/alfresco-community-repo/blob/9.0/repository/src/main/java/org/alfresco/repo/rendition2/LocalTransformClient.java#L128)), leaking state between user requests and rendering the requirement to call `checkSupported` sort-of moot
+- Failure to call `checkSupported` results in a `NullPointerException` as none of the default implementations ever validate the state of the thread local - a proper implementation would have checked and thrown at least an `IllegalStateException`
+- An aggregate caller operation using `checkSupported` and `transform` can never be atomic, as the underlying transformer registry information used in `checkSupported` can change before `transform` is called, as any update to transformer registry state is done non-transactionally and non-atomically
+
+## Exception-based control flow
+
+Similar to the previous issue, this one addresses the design of the API, again specifically of the `TransformClient`. Almost every best practice guide for Java tells developers to not use exceptions to control the execution flow of an application unless really exceptional constellations are encountered. Yet, the API boasts a `checkSupported` operation instead of a simpler `isSupported` operation, using `UnsupportedOperationException` and try-catch blocks (e.g. in `SwitchingTransformClient` and `RenditionService2Impl`) to control the execution flow. At least in ACS 6.2.1 Alfresco seems to have realised exception-based control flow is bad and defined the [SynchronousTransformClient](https://github.com/Alfresco/alfresco-community-repo/blob/9.0/repository/src/main/java/org/alfresco/repo/rendition2/SynchronousTransformClient.java#L59) with an `isSupported` operation - unfortunately, they did not correct their original sin.
+
+## Only unsafe rendition regeneration
+
+In addition to a lack of an explicit operation to re-generate a rendition, it is also not possible to regenerate a rendition using the regular render operation of the RendtitionService2 API, without first deleting the old rendition. This is due to the fact that the service internally checks the hash of the content data entry (*not* the hash of the actual content) against a hash stored in the rendition, and if the existing rendition matches the current hash, an `IllegalStateException` is thrown. This restriction effectively prevents use cases in which a re-generation should be attempted e.g. after the setup of transformers has been updated in a deployment, while keeping the old rendition as a fallback if - for some reason - the new rendition fails. And even if the `render` operation supported triggering re-generation, its current handling of errors actively removes the content of a rendition when a generation fails, which would remove the existing, fallback content in the case of a re-generation attempt.
+
+## Metadata extraction / embedding as "fake" transformation
+
+As part of Alfresco's drive to decouple more and more of non-essential, typically event-based logic out-of-process from ACS, extraction of metadata from content was one of the prime candidates to move into separate deployment components. As most of metadata extraction was based around the [Apache Tika](https://tika.apache.org/) framework, which also drove some of the previous transformations, Alfresco engineers seemingly decided to extract both transformations and metadata extraction using Tika into one consolidated application. For some reason though, the APIs used to address these kinds of applications was not extended to cover transformations and extractions as separate operations / use cases, instead metadata extractions are now handled as "fake" transformations with the pseudo target mimetype `alfresco-metadata-extract`. Similarly the pseudo target mimetype [`alfresco-metadata-embed`](https://github.com/Alfresco/alfresco-transform-core/blob/2.3.10/alfresco-transformer-base/src/main/java/org/alfresco/transformer/util/MimetypeMap.java#L35) has been defined in the framework for metadata embedding, which currently only the Tika-based transformer supports via an Apache POI sample embedder (at least for Community users).
+
+## Thumbnail-oriented enablement flag
+
+The RenditionService2 is enabled by the AND-joined values of `system.thumbnail.generate` and `renditionService2.enabled`. This means that the entire service will be disabled if an administrator sets `system.thumbnail.generate` to `false`, only expecting that thumbnail images are no longer generated, even if they would still want to support e.g. PDF renditions, video transcoding or other kinds of renditions to occurs which help to make content more accessible on different client software / system constellations.
+
+## No error-handling option for simple renditions
+
+The RenditionService2 provides the two primary operations `render` and `transform`. The former is used to generate simple, pre-defined renditions, and is used by e.g. the Public ReST API and handling of thumbnails for Share document libraries. The latter is used for asynchronous extraction of metadata as well as queue-based transformation requests. When a simple rendition fails, the handling of the error is completely encapsulated within the RenditionService2 (and Legacy / Local Transform client), with no option to access the details of the error and/or react differently to different causes of errors. In addition, it is not possible for users or clients e.g. using the Public ReST API, to check the state / result of a requested rendition - whether it is still in progress or has already failed, the rendition will simply not show up as having been created.
+
+## No throttling in Legacy / Local Transform clients
+
+Both the `LegacyTransformClient` and `LocalTransformClient` use an internal executor service to asynchronously generate renditions. Unless configured, both classes default this to an [unbounded, caching thread-pool using executor service](https://github.com/Alfresco/alfresco-community-repo/blob/9.0/repository/src/main/java/org/alfresco/repo/rendition2/LocalTransformClient.java#L102). Unfortunately, both are not configured with a specific executor service by [Alfresco Spring XML](https://github.com/Alfresco/alfresco-community-repo/blob/9.0/repository/src/main/resources/alfresco/rendition-services2-context.xml#L79).
+As a result, Alfresco Repository instances do not apply any throttling to rendition requests. In situations with mass document ingestion, mass listings in UIs which request renditions e.g. for displaying thumbnails, or other situations where many rendition requests are issued in short order, the Repository JVM may be overwhelmed with many additional threads being created and executed. Additionally, since both clients [execute their task within a transaction](https://github.com/Alfresco/alfresco-community-repo/blob/9.0/repository/src/main/java/org/alfresco/repo/rendition2/LocalTransformClient.java#L139), each of those active threads will claim and hold a connection to the database, which may exhaust the pool of available connections and prevent users / clients from working with the system until the renditions have completed.
+
+As this is not just a hypothetical issue and I have already worked with two customers that suffered from exhausted database connection due to the framework around RenditionService2, I have implemented [a patch for this as part of the Acosix Alfresco Utility module](https://github.com/Acosix/alfresco-utility/blob/master/full/repository/src/main/config/module-context.xml#L402), which is enabled by default when the full module variant is installed (alongside various other patches).
+
+## Incomplete/weird support of previews in Alfresco Share
+
+In contrast to regular document library thumbnails, previews shown on the document details page in Alfresco Share are not properly supported by the new framework around RenditionService2. Unless the Legacy Transform Client is enabled, and all legacy transformers (eiher All-In-One, or ImageMagick, LibreOffice, Tika, PDF Renderer and Misc as granular transformers) have been properly set up and connected, Alfresco Share will not be able to show any renditions as previews - even those which may have been pre-generated via configured Local Transform Client transformers. This is due to the fact that the underlying Repository-tier Script API still uses the deprecated `ContentService` APIs to check which mimetype transformations are supported, before any of the supported target mimetypes are even considered for being used in the preview. Additionally, when new previews are to be generated, the underlying Script API also uses the deprecated APIs to generate those instead of the RenditionService2.
+
+This effectively means that any custom transformers built using the new framework are not used in the generation of new previews, unless a rule / policy is put in place to automatically pre-generate the specific rendition when content is created / updated. As the new RenditionService2 API is a non-public / unsupported API, users / customers will be forced to either write extensions that would be flagged by [Alfresco's extension inspector](https://github.com/Alfresco/alfresco-extension-inspector/) or exclusively use the Public ReST API and queue-based event handling (which as of yet is still undocumented, despite being available since 5.2/6.0-ish) to trigger the rendition generation.
+Note that the need to pre-generate preview renditions for support in Alfresco Share using event-based processing is suited to directly trigger the issues with regards to throttling, covered in the previous section.
+
+## Lack of inspection for registry state
+
+While the RenditionService2 and accompanying code within the alfresco-repository source project do provide some debug logging - though, as is typical for Alfresco, use of logging is still way too little / not considerate what partners and customers may need, and uses the egregiously bad Apache Commons Logging instead of proper SLF4J API - the state of the transformer registries (separately for Legacy / Local Transform Client) remains a black box. There are no public / supported APIs to inspect that state, no logging which can be enabled to analyse the logic Alfresco applies to select transformers, and no admin console tooling to allow administrators to verify the expected transformations are available / working. This is likely an aspect where it will take community-driven tooling like the Order of the Bee Support Tools to fill the gap, and use non-public APIs and/or reflection to surface the relevant information.
+
+## Lack of runtime-changeable configuration properties
+
+Both Legacy and Local Transform Clients are configured by specifying properties for the base URL endpoints of the transformer applications via Alfresco's global properties. While Legacy Transform Clients are always coupled to specific transformer implementation classes in the Repository, supporting only a specific set of URL configurations, Local Transform Clients can be freely defined. Based on the URL configuration, Alfresco initially as well as regularly fetches the transformer configuration from these applications to update its internal transformer registry state. Unfortunately, Alfresco has missed the opportunity to use its own subsystems mechanism for the Local Transform registry to support configuration properties which may be changed at runtime, e.g. to add a new transformer application endpoint without requiring a downtime of the entire Alfresco Repository.
