@@ -86,7 +86,7 @@
 
         <maven.oss.staging.version>1.6.8</maven.oss.staging.version>
 
-        <fabric8io.docker.version>0.31.0</fabric8io.docker.version>
+        <fabric8io.docker.version>0.34.1</fabric8io.docker.version>
 
         <junit.version>4.12</junit.version>
 
@@ -456,6 +456,7 @@
                                         <tag>${project.version}</tag>
                                     </tags>
                                     <skip>true</skip>
+                                    <skipPush>true</skipPush>
                                 </build>
                             </image>
                         </images>
