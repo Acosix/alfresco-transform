@@ -67,10 +67,6 @@ import jakarta.servlet.http.Part;
 public class TransformHandler extends ContextAwareHandler
 {
 
-    // since we use raw handlers without a full servlet context, we need to set a multipart config on a request before handling multipart
-    // request messages
-    private static final MultipartConfigElement MULTI_PART_CONFIG = new MultipartConfigElement(System.getProperty("java.io.tmpdir"));
-
     private static final Logger LOGGER = LoggerFactory.getLogger(TransformHandler.class);
 
     private final Registry registry;
@@ -83,6 +79,10 @@ public class TransformHandler extends ContextAwareHandler
 
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
 
+    // since we use raw handlers without a full servlet context, we need to set a multipart config on a request before handling multipart
+    // request messages
+    private final MultipartConfigElement multiPartConfig;
+
     public TransformHandler(final Context context, final Registry registry, final TransformationLog transformationLog,
             final SharedFileAccessor sharedFileAccessor)
     {
@@ -93,6 +93,12 @@ public class TransformHandler extends ContextAwareHandler
 
         this.defaultTransformTimeout = this.context.getLongProperty("application.default.transformTimeout",
                 RequestConstants.DEFAULT_TRANSFORM_TIMEOUT, 1, Long.MAX_VALUE);
+
+        final Path tmpDir = context.createTempFileSubDirectory("multipartRequest");
+        final long maxFileSize = context.getLongProperty("application.multipartRequest.maxFileSize", -1, -1, Long.MAX_VALUE);
+        final long maxRequestSize = context.getLongProperty("application.multipartRequest.maxRequestSize", -1, -1, Long.MAX_VALUE);
+
+        this.multiPartConfig = new MultipartConfigElement(tmpDir.toString(), maxFileSize, maxRequestSize, 1024 * 100);
     }
 
     /**
@@ -118,7 +124,7 @@ public class TransformHandler extends ContextAwareHandler
 
             if (MimeTypes.Type.MULTIPART_FORM_DATA.is(mimetypeOnly))
             {
-                baseRequest.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, MULTI_PART_CONFIG);
+                baseRequest.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, this.multiPartConfig);
                 this.handleMultiPartRequest(request, response, logEntry);
             }
             else if (MimeTypes.Type.APPLICATION_JSON.is(mimetypeOnly))

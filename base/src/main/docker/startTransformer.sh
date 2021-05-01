@@ -3,6 +3,9 @@
 set -euo pipefail
 
 JAVA_OPTS=${JAVA_OPTS:-}
+# by default we allow 200 threads and swap multipart files to disk after 100 KiB
+# => 19.5 MiB heap (expected peak) + ~ 4 MiB app base
+# 64 MiB more than sufficient - 32 MiB not default only to account for GC (ideally "new gen only") and static resources on classpath (e.g. probe transformation source files) cached by classloader
 JAVA_XMS=${JAVA_XMS:-64M}
 JAVA_XMX=${JAVA_XMX:-$JAVA_XMS}
 

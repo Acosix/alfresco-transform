@@ -27,6 +27,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -59,7 +60,7 @@ public class RegistryImpl implements Registry
 
     private final Map<String, Set<TransformOption>> rootTransformOptions = new HashMap<>();
 
-    private final Map<String, Set<TransformerSupportedTransformation>> transformationsBySourceTarget = new HashMap<>();
+    private final Map<SourceTargetMimetypePair, Set<TransformerSupportedTransformation>> transformationsBySourceTarget = new HashMap<>();
 
     private final Map<String, Transformer> registeredTransformers = new HashMap<>();
 
@@ -89,7 +90,8 @@ public class RegistryImpl implements Registry
         this.registeredTransformers.put(transformer.getName(), transformer);
 
         transformer.getSupportedTransformations().forEach(transformation -> {
-            final String sourceTargetPair = asSourceTargetPair(transformation.getSourceMediaType(), transformation.getTargetMediaType());
+            final SourceTargetMimetypePair sourceTargetPair = new SourceTargetMimetypePair(transformation.getSourceMediaType(),
+                    transformation.getTargetMediaType());
             this.transformationsBySourceTarget.computeIfAbsent(sourceTargetPair, k -> new TreeSet<>())
                     .add(new TransformerSupportedTransformation(transformer, transformation));
         });
@@ -150,7 +152,7 @@ public class RegistryImpl implements Registry
 
         // transformations are inherently sorted by priority (only)
         final Set<TransformerSupportedTransformation> transformations = this.transformationsBySourceTarget
-                .getOrDefault(asSourceTargetPair(sourceMimetype, targetMimetype), Collections.emptySet());
+                .getOrDefault(new SourceTargetMimetypePair(sourceMimetype, targetMimetype), Collections.emptySet());
 
         return transformations.stream()
                 // filter by source size limits if present
@@ -337,9 +339,71 @@ public class RegistryImpl implements Registry
         return result;
     }
 
-    private static String asSourceTargetPair(final String sourceMimetype, final String targetMimetype)
+    private static class SourceTargetMimetypePair
     {
-        return sourceMimetype + "==>" + targetMimetype;
+
+        private final String sourceMimetype;
+
+        private final String targetMimetype;
+
+        public SourceTargetMimetypePair(final String sourceMimetype, final String targetMimetype)
+        {
+            this.sourceMimetype = sourceMimetype;
+            this.targetMimetype = targetMimetype;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(this.sourceMimetype, this.targetMimetype);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean equals(final Object obj)
+        {
+            if (this == obj)
+            {
+                return true;
+            }
+            if (obj == null)
+            {
+                return false;
+            }
+            if (this.getClass() != obj.getClass())
+            {
+                return false;
+            }
+            final SourceTargetMimetypePair other = (SourceTargetMimetypePair) obj;
+            if (this.sourceMimetype == null)
+            {
+                if (other.sourceMimetype != null)
+                {
+                    return false;
+                }
+            }
+            else if (!this.sourceMimetype.equals(other.sourceMimetype))
+            {
+                return false;
+            }
+            if (this.targetMimetype == null)
+            {
+                if (other.targetMimetype != null)
+                {
+                    return false;
+                }
+            }
+            else if (!this.targetMimetype.equals(other.targetMimetype))
+            {
+                return false;
+            }
+            return true;
+        }
     }
 
     private static class TransformerSupportedTransformation implements Comparable<TransformerSupportedTransformation>

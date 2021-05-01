@@ -167,12 +167,19 @@ public class LocalSharedFileAccessorImpl implements SharedFileAccessor
         try
         {
             final Path file = this.storageDir.resolve(fileReference);
-            Files.deleteIfExists(file);
+            final boolean deletedFile = Files.deleteIfExists(file);
 
             final Path contentTypeFile = this.storageDir.resolve(fileReference + TYPE_PSEUDO_EXTENSION);
-            Files.deleteIfExists(contentTypeFile);
+            final boolean deletedTypeMarker = Files.deleteIfExists(contentTypeFile);
 
-            LOGGER.debug("Deleted shared file {}", fileReference);
+            if (deletedFile || deletedTypeMarker)
+            {
+                LOGGER.debug("Deleted shared file {}", fileReference);
+            }
+            else
+            {
+                LOGGER.debug("Shared file {} never existed or has already been deleted", fileReference);
+            }
         }
         catch (final IOException ioex)
         {

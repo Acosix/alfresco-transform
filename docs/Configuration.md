@@ -26,7 +26,8 @@ Despite Spring not being used within the common base project or specific transfo
 | application.requestLog.format | `%{yyyy-MM-dd'T'HH:mm:ssZZZ}t %X \"%r\" %I %s %{ms}T %O` | The log message format to use for the request log file |
 | application.default.transformTimeout | `900000` | The default timeout value for any transformation in milliseconds, unless a request specifies its own timeout |
 | localTransformationLog.maxEntries | `100` | The maximum number of transformation log entries to keep in the in-memory transformation log |
-
+| application.multipartRequest.maxFileSize | `-1` | The maximum file size to accept in multipart transformation requests (as submitted by ACS or via the transform test form) |
+| application.multipartRequest.maxRequestSize | `-1` | The maximum request size to accept in multipart transformation requests (as submitted by ACS or via the transform test form) |
 
 ## SSL configuration properties
 
