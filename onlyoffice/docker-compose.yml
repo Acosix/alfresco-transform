@@ -134,6 +134,14 @@ services:
                     - onlyoffice-rabbitmq
         restart: unless-stopped
 
+    onlyoffice-token-rabbitmq:
+        image: rabbitmq:3.8.9
+        networks:
+            onlyoffice:
+                aliases:
+                    - onlyoffice-token-rabbitmq
+        restart: unless-stopped
+
     onlyoffice-documentserver:
         image: onlyoffice/documentserver:6.2.0
         networks:
@@ -176,7 +184,7 @@ services:
             - DB_NAME=onlyoffice2
             - DB_USER=onlyoffice2
             - DB_PWD=onlyoffice2
-            - AMQP_URI=amqp://guest:guest@onlyoffice-rabbitmq
+            - AMQP_URI=amqp://guest:guest@onlyoffice-token-rabbitmq
             - JWT_ENABLED=true
             - JWT_SECRET=}@jqK3X.]ZP^2=35
             - JWT_HEADER=Authorization
