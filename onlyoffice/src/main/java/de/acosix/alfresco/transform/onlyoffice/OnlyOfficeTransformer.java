@@ -105,9 +105,9 @@ public class OnlyOfficeTransformer extends AbstractTransformer
         fileTypeMappings.put("application/vnd.ms-excel", "xls");
         fileTypeMappings.put("application/vnd.ms-powerpoint", "ppt");
         fileTypeMappings.put("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx");
-        fileTypeMappings.put("application/application/vnd.ms-word.document.macroenabled.12", "docm");
-        fileTypeMappings.put("application/application/vnd.openxmlformats-officedocument.wordprocessingml.template", "dotx");
-        fileTypeMappings.put("application/application/vnd.ms-word.template.macroenabled.12", "dotm");
+        fileTypeMappings.put("application/vnd.ms-word.document.macroenabled.12", "docm");
+        fileTypeMappings.put("application/vnd.openxmlformats-officedocument.wordprocessingml.template", "dotx");
+        fileTypeMappings.put("application/vnd.ms-word.template.macroenabled.12", "dotm");
         fileTypeMappings.put("application/vnd.oasis.opendocument.text", "odt");
         fileTypeMappings.put("application/vnd.oasis.opendocument.text-template", "ott");
         fileTypeMappings.put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx");
