@@ -165,7 +165,7 @@ public class TransformHandler extends ContextAwareHandler
         logEntry.recordRequestValues(sourceMimetype, -1, targetMimetype, transformationRequestParameters);
         LOGGER.debug(
                 "Handling multipart/form-data transformation request from source mimetype {} to target {}, using extension {}, timeout {} and request parameters {}",
-                sourceMimetype, targetMimetype, targetExtension, timeout, transformationRequestParameters);
+                sourceMimetype, targetMimetype, targetExtension, timeout != null ? timeout : "(default)", transformationRequestParameters);
 
         final String sourceFileName = this.getEffectiveSourceFileName(filePart);
 

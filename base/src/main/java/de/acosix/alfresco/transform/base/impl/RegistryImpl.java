@@ -190,7 +190,7 @@ public class RegistryImpl implements Registry
         final Collection<String> transformerOptionProfiles = transformer.getTransformOptions();
         final Map<String, Boolean> transformOptions = new HashMap<>();
         transformerOptionProfiles.forEach(profile -> this.rootTransformOptions.get(profile)
-                .forEach(option -> this.collectOptionFields(option, false, true, transformOptions)));
+                .forEach(option -> this.collectOptionFields(option, true, false, transformOptions, Collections.emptyMap())));
 
         final Map<String, String> defaultOptions = new HashMap<>();
         for (final String option : transformOptions.keySet())
@@ -252,7 +252,7 @@ public class RegistryImpl implements Registry
         final Collection<String> transformerOptionProfiles = transformer.getTransformOptions();
         final Map<String, Boolean> transformOptions = new HashMap<>();
         transformerOptionProfiles.forEach(profile -> this.rootTransformOptions.get(profile)
-                .forEach(option -> this.collectOptionFields(option, false, true, transformOptions)));
+                .forEach(option -> this.collectOptionFields(option, true, false, transformOptions, options)));
 
         final boolean allRequiredOptionsProvided = transformOptions.entrySet().stream().filter(Entry::getValue).map(Entry::getKey)
                 .allMatch(k -> (options.containsKey(k) && options.get(k) != null && !options.get(k).isBlank())
@@ -266,20 +266,48 @@ public class RegistryImpl implements Registry
         return allRequiredOptionsProvided && containsOnlySupportedOptions;
     }
 
-    private void collectOptionFields(final TransformOption currentElement, final boolean inheritedRequired, final boolean isRoot,
-            final Map<String, Boolean> transformOptions)
+    private void collectOptionFields(final TransformOption currentElement, final boolean isRoot, final boolean triggerRequirement,
+            final Map<String, Boolean> requiredFlagByOption, final Map<String, String> providedOptions)
     {
-        // due to Alfresco's engine.json structure, root groups can never be effectively required
-        final boolean required = inheritedRequired || (!isRoot && currentElement.isRequired());
         if (currentElement instanceof TransformOptionGroup)
         {
-            ((TransformOptionGroup) currentElement).getTransformOptions()
-                    .forEach(e -> this.collectOptionFields(e, required, false, transformOptions));
+            // due to Alfresco's engine.json structure, root groups can never be trigger sub-elements' required state by being flagged
+            // required themselves
+            final boolean triggerSubElementRequirement = (!isRoot && currentElement.isRequired())
+                    || this.isPresent(currentElement, providedOptions);
+            ((TransformOptionGroup) currentElement).getTransformOptions().stream().forEach(
+                    se -> this.collectOptionFields(se, false, triggerSubElementRequirement, requiredFlagByOption, providedOptions));
         }
         else if (currentElement instanceof TransformOptionValue)
         {
-            transformOptions.compute(((TransformOptionValue) currentElement).getName(), (k, v) -> required || Boolean.TRUE.equals(v));
+            requiredFlagByOption.put(((TransformOptionValue) currentElement).getName(), currentElement.isRequired() && triggerRequirement);
         }
+    }
+
+    /**
+     * Checks whether a particular supported option (group) is present / provided via the client-provided option map.
+     *
+     * @param currentElement
+     *     the element to process
+     * @param providedOptions
+     *     the options provided by the client
+     * @return {@code true} if the element (or any of its sub-elements) is present, {@code false} otherwise
+     */
+    private boolean isPresent(final TransformOption currentElement, final Map<String, String> providedOptions)
+    {
+        boolean present = false;
+        if (currentElement instanceof TransformOptionGroup)
+        {
+            present = ((TransformOptionGroup) currentElement).getTransformOptions().stream()
+                    .anyMatch(se -> this.isPresent(se, providedOptions));
+        }
+        else if (currentElement instanceof TransformOptionValue)
+        {
+            final String name = ((TransformOptionValue) currentElement).getName();
+            final String value = providedOptions.get(name);
+            present = value != null && !value.isBlank();
+        }
+        return present;
     }
 
     private String getDefaultOption(final String transformerName, final String optionName)

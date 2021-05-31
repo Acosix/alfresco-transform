@@ -265,9 +265,9 @@ public class RemoteSharedFileAccessorImpl implements SharedFileAccessor
 
     private static void discardResponse(final InputStreamResponseListener listener)
     {
-        try (final InputStream is = listener.getInputStream())
+        try
         {
-            // NO-OP
+            listener.getInputStream().close();
         }
         catch (final IOException ignore)
         {

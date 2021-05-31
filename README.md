@@ -34,6 +34,8 @@ Within the alfresco-transform-core GitHub project, Alfresco provides a [common b
 - [OnlyOffice transformer](./docs/OnlyOfficeTransformer.md) using the [OnlyOffice Conversion API](https://api.onlyoffice.com/editors/conversionapi) found in [OnlyOffice Document Server / ONLYOFFICE Docs](https://github.com/ONLYOFFICE/Docker-DocumentServer)
     - Slightly higher priority for converting MS Office formats to PDF / images compared to Alfresco's LibreOffice transformer due to higher result quality
     - Slightly lower priority for converting OpenDocument formats to PDF / images compared to Alfresco's LibreOffice transformer, as tests - specifically with presentations - have shown OnlyOffice to produce strange PDF fragments in some cases
+- [Misc transformer](./docs/MiscTransformer.md)
+    - Chrome / Chromium DevTools-based conversion of HTML / SVG to PDF / PNG / JPEG
 
 # Build
 
@@ -49,8 +51,9 @@ This project depends on and also includes the following projects / libraries in 
 - [SLF4J API](http://www.slf4j.org/), MIT license
 - [Logback Classic](http://logback.qos.ch/), Eclipse Public License Version 1.0 / GNU Lesser General Public License Version 2.1
 - FasterXML [Jackson Core](https://github.com/FasterXML/jackson-core), [Jackson Databind](https://github.com/FasterXML/jackson-databind) and [Jackson Annotations](https://github.com/FasterXML/jackson-annotations), Apache License Version 2.0
+- [Java-WebSocket](https://github.com/TooTallNate/Java-WebSocket), Nathan Rajlich, MIT License
 - [OWASP Java Encoder](https://owasp.org/owasp-java-encoder/), BSD 3-Clause "New" or "Revised" License
-- Alfresco Transform Model, GNU Lesser General Public LIcense Version 3
+- Alfresco Transform Model, GNU Lesser General Public License Version 3
 
 The license / copyright notices as provided by each project can be found in the [licenses](./licenses/) directory.
 
@@ -60,6 +63,7 @@ This project currently builds the following Docker images, available on DockerHu
 
 - acosix/alfresco-transform-base
 - acosix/alfresco-transform-onlyoffice
+- acosix/alfresco-transform-misc
 
 This project currently builds the following Maven / Java artifacts, available on Maven Central (release versions) or Sonatype Open Source Repository Hosting (SNAPSHOTS) - excluding POMs, as well as other technical or semantically empty artifacts:
 
@@ -73,6 +77,11 @@ This project currently builds the following Maven / Java artifacts, available on
 - de.acosix.alfresco.transform:de.acosix.alfresco.transform.onlyoffice:sources:jar
 - de.acosix.alfresco.transform:de.acosix.alfresco.transform.onlyoffice:shaded-sources:jar
 - de.acosix.alfresco.transform:de.acosix.alfresco.transform.onlyoffice:javadoc:jar
+- de.acosix.alfresco.transform:de.acosix.alfresco.transform.misc:jar
+- de.acosix.alfresco.transform:de.acosix.alfresco.transform.misc:shaded:jar
+- de.acosix.alfresco.transform:de.acosix.alfresco.transform.misc:sources:jar
+- de.acosix.alfresco.transform:de.acosix.alfresco.transform.misc:shaded-sources:jar
+- de.acosix.alfresco.transform:de.acosix.alfresco.transform.misc:javadoc:jar
 
 ## Using SNAPSHOT builds
 

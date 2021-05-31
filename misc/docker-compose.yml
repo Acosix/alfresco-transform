@@ -1,0 +1,27 @@
+
+services:
+    transformer:
+        image: acosix/alfresco-transform-misc:latest
+        ports:
+            - 8080:8080
+            - 8000:8000
+        networks:
+            - transformers
+        environment:
+            - DEBUG=true
+            - T_devtools.host=chrome
+            - T_devtools.port=9222
+            - T_application.host=transformer
+        restart: unless-stopped
+
+    chrome:
+        image: acosix/baseimage-chrome-headless:20210530
+        hostname: chrome
+        networks:
+            transformers:
+                aliases:
+                    - chrome
+        restart: unless-stopped
+
+networks:
+    transformers:

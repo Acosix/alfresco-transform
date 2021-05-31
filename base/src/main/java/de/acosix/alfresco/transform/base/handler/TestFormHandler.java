@@ -89,7 +89,7 @@ public class TestFormHandler extends AbstractHandler
         writer.write("<html>\n");
         writer.write("<head>\n");
         writer.write("\t<style>\n");
-        writer.write("\t\tdiv.label { text-align: right; }\n");
+        writer.write("\t\ttd.label { text-align: right; }\n");
         writer.write("\t\tinput[type=\"text\"] { width: 20em; }\n");
         writer.write("\t</style>\n");
         writer.write("</head>\n");
@@ -126,19 +126,21 @@ public class TestFormHandler extends AbstractHandler
     private void writeOptionSet(final Writer writer, final Set<TransformOption> options) throws IOException
     {
         writer.write("\t\t\t\t<tbody>\n");
+        writer.write("\t\t\t\t\t<tr><td class=\"optionGroupStart\" colspan=\"2\">Start option group</td>");
         for (final TransformOption option : options)
         {
-            this.writeOption(writer, option, false);
+            this.writeOption(writer, option);
         }
+        writer.write("\t\t\t\t\t<tr><td class=\"optionGroupEnd\" colspan=\"2\">End option group</td>");
         writer.write("\t\t\t\t</tbody>\n");
     }
 
-    private void writeOption(final Writer writer, final TransformOption option, final boolean inheritedRequired) throws IOException
+    private void writeOption(final Writer writer, final TransformOption option) throws IOException
     {
         if (option instanceof TransformOptionValue)
         {
             final String name = ((TransformOptionValue) option).getName();
-            final boolean isRequired = option.isRequired() || inheritedRequired;
+            final boolean isRequired = option.isRequired();
 
             final String label = name + (isRequired ? " *" : "");
             this.writeFormControl(writer, label, name, "text");
@@ -146,20 +148,21 @@ public class TestFormHandler extends AbstractHandler
         else if (option instanceof TransformOptionGroup)
         {
             final Set<TransformOption> subOptions = ((TransformOptionGroup) option).getTransformOptions();
-            final boolean isRequired = option.isRequired() || inheritedRequired;
 
+            writer.write("\t\t\t\t\t<tr><td class=\"optionGroupStart\" colspan=\"2\">Start nested option group</td>");
             for (final TransformOption subOption : subOptions)
             {
-                this.writeOption(writer, subOption, isRequired);
+                this.writeOption(writer, subOption);
             }
+            writer.write("\t\t\t\t\t<tr><td class=\"optionGroupEnd\" colspan=\"2\">End nested option group</td>");
         }
     }
 
     private void writeFormControl(final Writer writer, final String label, final String fieldName, final String type) throws IOException
     {
-        writer.write("\t\t\t\t\t<tr><td><div class=\"label\">");
+        writer.write("\t\t\t\t\t<tr><td class=\"label\">");
         Encode.forHtml(writer, label);
-        writer.write("</div></td><td><input type=\"");
+        writer.write("</td><td><input type=\"");
         writer.write(type);
         writer.write("\" name=\"");
         Encode.forHtml(writer, fieldName);
