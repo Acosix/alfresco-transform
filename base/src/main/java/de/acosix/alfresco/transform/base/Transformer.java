@@ -18,9 +18,6 @@ package de.acosix.alfresco.transform.base;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
-
-import org.alfresco.transform.client.model.config.SupportedSourceAndTarget;
 
 /**
  * Instances of this interface represent specific content transformation workers, transforming the content of a file between different
@@ -29,29 +26,8 @@ import org.alfresco.transform.client.model.config.SupportedSourceAndTarget;
  *
  * @author Axel Faust
  */
-public interface Transformer
+public interface Transformer extends TransformerConfigState
 {
-
-    /**
-     * Retrieves the name of this instance
-     *
-     * @return the name of this instance
-     */
-    String getName();
-
-    /**
-     * Retrieves the set references to transform options this transformer supports.
-     *
-     * @return the names of supported transform options
-     */
-    Set<String> getTransformOptions();
-
-    /**
-     * Retrieves the collection of transformations this instance supports
-     *
-     * @return the supported transformations
-     */
-    Set<SupportedSourceAndTarget> getSupportedTransformations();
 
     /**
      * Transforms a content file into the specified target mimetype.

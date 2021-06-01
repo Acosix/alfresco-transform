@@ -44,6 +44,9 @@ import de.acosix.alfresco.transform.base.MetadataExtracter;
 import de.acosix.alfresco.transform.base.Registry;
 import de.acosix.alfresco.transform.base.RequestConstants;
 import de.acosix.alfresco.transform.base.Transformer;
+import de.acosix.alfresco.transform.base.TransformerConfigState;
+import de.acosix.alfresco.transform.base.TransformerFailoverConfig;
+import de.acosix.alfresco.transform.base.TransformerPipelineConfig;
 
 /**
  *
@@ -64,6 +67,8 @@ public class RegistryImpl implements Registry
 
     private final Map<String, Transformer> registeredTransformers = new HashMap<>();
 
+    private final Map<String, TransformerConfigState> knownTransformerConfigs = new HashMap<>();
+
     private final Map<String, MetadataExtracter> registeredExtracters = new HashMap<>();
 
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
@@ -72,6 +77,7 @@ public class RegistryImpl implements Registry
     {
         this.context = context;
         this.readTransformerOptionProfiles();
+        this.readComplexTransformerConfig();
     }
 
     /**
@@ -88,6 +94,7 @@ public class RegistryImpl implements Registry
         }
 
         this.registeredTransformers.put(transformer.getName(), transformer);
+        this.knownTransformerConfigs.put(transformer.getName(), transformer);
 
         transformer.getSupportedTransformations().forEach(transformation -> {
             final SourceTargetMimetypePair sourceTargetPair = new SourceTargetMimetypePair(transformation.getSourceMediaType(),
@@ -214,11 +221,11 @@ public class RegistryImpl implements Registry
         final TransformConfig config = new TransformConfig();
         config.setTransformOptions(this.rootTransformOptions);
 
-        config.setTransformers(this.registeredTransformers.entrySet().stream().map(entry -> {
+        config.setTransformers(this.knownTransformerConfigs.entrySet().stream().map(entry -> {
             final String name = entry.getKey();
-            final Transformer transformer = entry.getValue();
+            final TransformerConfigState transformerConfig = entry.getValue();
             final org.alfresco.transform.client.model.config.Transformer t = new org.alfresco.transform.client.model.config.Transformer(
-                    name, transformer.getTransformOptions(), transformer.getSupportedTransformations());
+                    name, transformerConfig.getTransformOptions(), transformerConfig.getSupportedTransformations());
 
             if (this.registeredExtracters.containsKey(name))
             {
@@ -230,6 +237,14 @@ public class RegistryImpl implements Registry
                 {
                     supported.add(new SupportedSourceAndTarget(sourceMimetype, ALFRESCO_METADATA_EXTRACT, -1));
                 }
+            }
+            else if (transformerConfig instanceof TransformerPipelineConfig)
+            {
+                t.setTransformerPipeline(((TransformerPipelineConfig) transformerConfig).getPipelineSteps());
+            }
+            else if (transformerConfig instanceof TransformerFailoverConfig)
+            {
+                t.setTransformerFailover(((TransformerFailoverConfig) transformerConfig).getFailoverTransformers());
             }
 
             return t;
@@ -315,6 +330,21 @@ public class RegistryImpl implements Registry
         final String property = "transformerDefaultOptions." + transformerName + "." + optionName;
         final String optionValue = this.context.getStringProperty(property);
         return optionValue != null && !optionValue.isBlank() ? optionValue : null;
+    }
+
+    private void readComplexTransformerConfig()
+    {
+        final List<String> failoverTransformerNames = this.context.getMultiValuedProperty("failoverTransformers");
+        failoverTransformerNames.forEach(n -> {
+            final TransformerFailoverConfigImpl config = new TransformerFailoverConfigImpl(n, this.context);
+            this.knownTransformerConfigs.put(config.getName(), config);
+        });
+
+        final List<String> pipelineTransformerNames = this.context.getMultiValuedProperty("pipelineTransformers");
+        pipelineTransformerNames.forEach(n -> {
+            final TransformerPipelineConfigImpl config = new TransformerPipelineConfigImpl(n, this.context);
+            this.knownTransformerConfigs.put(config.getName(), config);
+        });
     }
 
     private void readTransformerOptionProfiles()
