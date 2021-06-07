@@ -1,0 +1,78 @@
+body > div.mailHeader {
+    font-family: initial;
+    font-size: initial;
+    font-weight: initial;
+    color: initial;
+    margin: initial;
+    border: initial;
+
+	display: grid;
+	grid-template-columns: min-content 1fr min-content max-content;
+	column-gap: 1em;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 1.5ex;
+	border-radius: 1ex;
+	background-color: #e9e9e9;
+	margin-bottom: 1ex;
+}
+
+body > div.mailHeader div.fieldLabel {
+	text-align: right;
+	vertical-align: top;
+	grid-column: 1;
+	white-space: nowrap; 
+}
+
+body > div.mailHeader div.fieldValue {
+    text-align: left;
+    vertical-align: top;
+    grid-column: 2 / span 3;
+}
+
+body > div.mailHeader div.fieldValue.from {
+	grid-column: 2 / span 1;
+}
+
+body > div.mailHeader div.fieldLabel.date {
+    grid-column: 3 / span 1;
+}
+
+body > div.mailHeader div.fieldValue.date {
+    grid-column: 4 / span 1;
+    white-space: nowrap;
+}
+
+body > div.mailHeader div.fieldValue.attachments > span > span {
+    white-space: nowrap;
+}
+
+body > div.mailHeader div.fieldValue > span > a::after,
+body > div.mailHeader div.fieldValue > span > span::after {
+    content: ', ';
+    margin-right: 0.5ex;
+}
+
+body > div.mailHeader div.fieldValue > span > a:last-child::after,
+body > div.mailHeader div.fieldValue > span > span:last-child::after {
+    content: '';
+    margin-right: 0;
+}
+
+body > div.mailHeader a {
+	color: initial;
+	text-decoration: none;
+}
+
+iframe {
+	width: 100%;
+	border: 0;
+}
+
+/* some MS mail HTML may include a global WordSection1 div.
+ * Its default rule would cause it to print on a different page
+ * than the header.
+ */
+body > div.WordSection1 {
+	page: initial;
+}

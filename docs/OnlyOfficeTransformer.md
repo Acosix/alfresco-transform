@@ -15,7 +15,7 @@ Note that OnlyOffice documents file extensions as types whereas the transformer 
 
 ## Configuration properties
 
-|| Property || Default || Remarks ||
+| Property | Default | Remarks |
 | :--- | :--- | :--- |
 | onlyoffice.conversionUrl |  | The full URL to the OnlyOffice conversion API - if the URL begins with `https://`, the SSL configuration will be loaded, otherwise no SSL communication (even if redirect to HTTPS) is supported |
 | onlyoffice.jwtSecret |  | The value of the shared secret for signing / validating the 

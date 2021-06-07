@@ -15,9 +15,6 @@
  */
 package de.acosix.alfresco.transform.misc;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import de.acosix.alfresco.transform.base.impl.TransformerApplication;
 import de.acosix.alfresco.transform.misc.cdt.DevToolsWebSocketClient;
 import de.acosix.alfresco.transform.misc.cdt.DevToolsWebSocketClientImpl;
@@ -28,8 +25,6 @@ import de.acosix.alfresco.transform.misc.cdt.DevToolsWebSocketClientImpl;
  */
 public class MiscTransformerApplication extends TransformerApplication
 {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(MiscTransformerApplication.class);
 
     /**
      * Runs this application
@@ -69,6 +64,6 @@ public class MiscTransformerApplication extends TransformerApplication
     protected void setupTransformers()
     {
         this.registry.registerTransformer(new DevToolsTransformer(this.context, this.transformationLog, this.client));
-        LOGGER.info("Registered DevTools Protocol-based transformer");
+        this.registry.registerTransformer(new MailHtmlTransformer(this.context, this.transformationLog));
     }
 }

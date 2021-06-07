@@ -262,7 +262,7 @@ public class ContextImpl implements Context
     {
         String property = this.properties.get(propertyName);
 
-        if (property != null && property.matches("(^|[^\\\\]([\\\\]{2})*+)\\$\\{.*"))
+        if (property != null && property.contains("${"))
         {
             property = this.resolvePlaceholders(propertyName, property);
         }

@@ -47,7 +47,6 @@ public abstract class AbstractTransformerConfigState implements TransformerConfi
     {
         this.name = name;
         this.context = context;
-        this.readConfig();
     }
 
     /**
@@ -90,7 +89,7 @@ public abstract class AbstractTransformerConfigState implements TransformerConfi
         // NO-OP - for extension purposes
     }
 
-    private void readConfig()
+    protected final void readConfig()
     {
         final String prefix = this.getConfigKeyPrefix() + "." + this.name + '.';
         this.transformerOptionElements.addAll(this.context.getMultiValuedProperty(prefix + "transformerOptions"));
@@ -122,6 +121,8 @@ public abstract class AbstractTransformerConfigState implements TransformerConfi
         }
 
         transformationsBySourceAndTarget.values().forEach(v -> v.values().forEach(t -> this.supportedTransformations.add(t)));
+
+        this.readExtendedConfig(prefix);
     }
 
     private void readTransformationsForSourceMimetype(final String sourceMimetype, final Collection<String> targetMimetypes,

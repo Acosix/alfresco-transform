@@ -35,6 +35,7 @@ public class TransformerPipelineConfigImpl extends AbstractTransformerConfigStat
     protected TransformerPipelineConfigImpl(final String name, final Context context)
     {
         super(name, context);
+        this.readConfig();
     }
 
     /**
@@ -80,7 +81,7 @@ public class TransformerPipelineConfigImpl extends AbstractTransformerConfigStat
         for (int idx = 0, max = transformers.size(); idx < max; idx++)
         {
             final String transformer = transformers.get(idx);
-            final String intermediateType = idx == max - 2 ? null : intermediateTypes.get(idx);
+            final String intermediateType = idx == max - 1 ? null : intermediateTypes.get(idx);
 
             final TransformStep step = new TransformStep(transformer, intermediateType);
             this.pipelineSteps.add(step);

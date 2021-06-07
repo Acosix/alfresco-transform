@@ -41,8 +41,18 @@ public abstract class AbstractTransformer extends AbstractTransformerConfigState
 
     protected AbstractTransformer(final String name, final Context context, final TransformationLog transformationLog)
     {
+        this(name, context, transformationLog, true);
+    }
+
+    protected AbstractTransformer(final String name, final Context context, final TransformationLog transformationLog,
+            final boolean readConfigImmediately)
+    {
         super(name, context);
         this.transformationLog = transformationLog;
+        if (readConfigImmediately)
+        {
+            this.readConfig();
+        }
     }
 
     /**

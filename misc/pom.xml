@@ -34,6 +34,7 @@
         <docker.image.name>alfresco-transform-misc</docker.image.name>
 
         <java.ws.version>1.5.2</java.ws.version>
+        <jakarta.mail.version>2.0.1</jakarta.mail.version>
     </properties>
 
     <dependencyManagement>
@@ -50,6 +51,12 @@
                 <artifactId>Java-WebSocket</artifactId>
                 <version>${java.ws.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>com.sun.mail</groupId>
+                <artifactId>jakarta.mail</artifactId>
+                <version>${jakarta.mail.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -63,6 +70,11 @@
         <dependency>
             <groupId>org.java-websocket</groupId>
             <artifactId>Java-WebSocket</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>jakarta.mail</artifactId>
         </dependency>
     </dependencies>
 
@@ -111,6 +123,8 @@
                                     <includes>
                                         <include>de.acosix.alfresco.transform:*</include>
                                         <include>org.java-websocket:Java-WebSocket:*</include>
+                                        <include>com.sun.mail:jakarta.mail:*</include>
+                                        <include>com.sun.activation:jakarta.activation:*</include>
                                     </includes>
                                 </artifactSet>
                                 <transformers>

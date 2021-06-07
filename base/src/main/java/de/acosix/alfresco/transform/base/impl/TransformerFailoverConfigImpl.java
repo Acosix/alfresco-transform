@@ -32,6 +32,7 @@ public class TransformerFailoverConfigImpl extends AbstractTransformerConfigStat
     protected TransformerFailoverConfigImpl(final String name, final Context context)
     {
         super(name, context);
+        this.readConfig();
     }
 
     /**

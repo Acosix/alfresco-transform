@@ -35,7 +35,9 @@ Within the alfresco-transform-core GitHub project, Alfresco provides a [common b
     - Slightly higher priority for converting MS Office formats to PDF / images compared to Alfresco's LibreOffice transformer due to higher result quality
     - Slightly lower priority for converting OpenDocument formats to PDF / images compared to Alfresco's LibreOffice transformer, as tests - specifically with presentations - have shown OnlyOffice to produce strange PDF fragments in some cases
 - [Misc transformer](./docs/MiscTransformer.md)
-    - Chrome / Chromium DevTools-based conversion of HTML / SVG to PDF / PNG / JPEG
+    - Chrome / Chromium DevTools-based conversion of HTML / SVG to PDF / PNG / JPEG, incl. pipeline to various image variants
+    - RFC 822 emails to HTML, incl. pipeline via DevTools to PDF / image variants
+    - Pipelines + priority overrides for certain PDF / PNG pipelines, relevant for default renditions (doclib / pdf)
 
 # Build
 
@@ -52,6 +54,8 @@ This project depends on and also includes the following projects / libraries in 
 - [Logback Classic](http://logback.qos.ch/), Eclipse Public License Version 1.0 / GNU Lesser General Public License Version 2.1
 - FasterXML [Jackson Core](https://github.com/FasterXML/jackson-core), [Jackson Databind](https://github.com/FasterXML/jackson-databind) and [Jackson Annotations](https://github.com/FasterXML/jackson-annotations), Apache License Version 2.0
 - [Java-WebSocket](https://github.com/TooTallNate/Java-WebSocket), Nathan Rajlich, MIT License
+- [Jakarta Mail](https://eclipse-ee4j.github.io/mail/), Eclipse Public License Version 2.0
+- [Jakarta Activation](https://jakarta.ee/specifications/activation/2.0/), Oracle, BSD-3-Clause
 - [OWASP Java Encoder](https://owasp.org/owasp-java-encoder/), BSD 3-Clause "New" or "Revised" License
 - Alfresco Transform Model, GNU Lesser General Public License Version 3
 
