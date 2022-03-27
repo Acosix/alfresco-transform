@@ -1,4 +1,4 @@
-FROM acosix/baseimage-java11-openjdk:20210309
+FROM acosix/baseimage-java11-openjdk:20211006
 
 RUN mkdir -p /var/lib/acosix-transformer /var/log/acosix-transformer \
   && groupadd -g 12000 transformer \
