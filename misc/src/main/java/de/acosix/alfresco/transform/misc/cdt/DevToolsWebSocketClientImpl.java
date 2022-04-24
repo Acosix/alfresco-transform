@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Acosix GmbH
+ * Copyright 2021 - 2022 Acosix GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -61,6 +62,8 @@ public class DevToolsWebSocketClientImpl extends WebSocketClient implements DevT
     private static final Logger LOGGER = LoggerFactory.getLogger(DevToolsWebSocketClientImpl.class);
 
     private final Map<CommandKey, CommandResponseSync> commandSyncs = new HashMap<>();
+
+    private final ReentrantLock commandSyncLock = new ReentrantLock(true);
 
     private final AtomicInteger idSequence = new AtomicInteger(0);
 
@@ -386,8 +389,19 @@ public class DevToolsWebSocketClientImpl extends WebSocketClient implements DevT
                 : "Web socket client closed with code {} and reason: {}", code, reason);
         this.connected = false;
 
-        final List<CommandResponseSync> commandSyncs = new ArrayList<>(this.commandSyncs.values());
-        this.commandSyncs.clear();
+        final List<CommandResponseSync> commandSyncs;
+        this.commandSyncLock.lock();
+        try
+        {
+            // a bit convoluted - new ArrayList<>(this.commandSyncs.values()) should have worked too
+            // for some reason though, this has at least once resulted in a NegativeArraySizeException for the internal toArray
+            commandSyncs = this.commandSyncs.values().stream().collect(Collectors.toList());
+            this.commandSyncs.clear();
+        }
+        finally
+        {
+            this.commandSyncLock.unlock();
+        }
         commandSyncs
                 .forEach(c -> c.complete(new DevToolsException(remote ? "Web socket client closed by peer" : "Web socket client closed")));
     }
@@ -407,7 +421,16 @@ public class DevToolsWebSocketClientImpl extends WebSocketClient implements DevT
         LOGGER.debug("Handling web socket message as command response");
         final int id = messageRoot.get("id").asInt();
         final String sessionId = messageRoot.hasNonNull("sessionId") ? messageRoot.get("sessionId").asText() : null;
-        final CommandResponseSync commandSync = this.commandSyncs.remove(new CommandKey(id, sessionId));
+        final CommandResponseSync commandSync;
+        this.commandSyncLock.lock();
+        try
+        {
+            commandSync = this.commandSyncs.remove(new CommandKey(id, sessionId));
+        }
+        finally
+        {
+            this.commandSyncLock.unlock();
+        }
         if (commandSync != null)
         {
             if (messageRoot.hasNonNull("result"))
@@ -545,7 +568,15 @@ public class DevToolsWebSocketClientImpl extends WebSocketClient implements DevT
         final CommandKey commandKey = new CommandKey(id, sessionId);
         final CommandResponseSync commandSync = new CommandResponseSync();
 
-        this.commandSyncs.put(commandKey, commandSync);
+        this.commandSyncLock.lock();
+        try
+        {
+            this.commandSyncs.put(commandKey, commandSync);
+        }
+        finally
+        {
+            this.commandSyncLock.unlock();
+        }
         try
         {
             this.send(new String(bos.toByteArray()));
@@ -556,7 +587,15 @@ public class DevToolsWebSocketClientImpl extends WebSocketClient implements DevT
         }
         finally
         {
-            this.commandSyncs.remove(commandKey);
+            this.commandSyncLock.lock();
+            try
+            {
+                this.commandSyncs.remove(commandKey);
+            }
+            finally
+            {
+                this.commandSyncLock.unlock();
+            }
         }
     }
 
