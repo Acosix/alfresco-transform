@@ -107,7 +107,7 @@ services:
         restart: unless-stopped
 
     postgres:
-        image: acosix/baseimage-postgresql:latest
+        image: acosix/baseimage-postgresql:20230213
         volumes:
             - pgsql:/srv/postgresql
         networks:
@@ -118,16 +118,16 @@ services:
             - PG_PASS=local-dev
             - PGCONF_max_connections=200
             - PGCONF_track_io_timing=on
-            - PG_USER_onlyoffice=onlyoffice
+            - PG_USER_onlyoffice=
             - PG_PASS_onlyoffice=onlyoffice
             - PG_DB_onlyoffice=onlyoffice
-            - PG_USER_onlyoffice2=onlyoffice2
+            - PG_USER_onlyoffice2=
             - PG_PASS_onlyoffice2=onlyoffice2
             - PG_DB_onlyoffice2=onlyoffice2
         restart: unless-stopped
 
     onlyoffice-rabbitmq:
-        image: rabbitmq:3.8.9
+        image: rabbitmq:3.9.28
         networks:
             onlyoffice:
                 aliases:
@@ -135,7 +135,7 @@ services:
         restart: unless-stopped
 
     onlyoffice-token-rabbitmq:
-        image: rabbitmq:3.8.9
+        image: rabbitmq:3.9.28
         networks:
             onlyoffice:
                 aliases:
@@ -143,7 +143,7 @@ services:
         restart: unless-stopped
 
     onlyoffice-documentserver:
-        image: onlyoffice/documentserver:6.2.0
+        image: onlyoffice/documentserver:7.3.2
         networks:
             onlyoffice:
                 aliases:
@@ -162,11 +162,12 @@ services:
             - DB_USER=onlyoffice
             - DB_PWD=onlyoffice
             - AMQP_URI=amqp://guest:guest@onlyoffice-rabbitmq
+            - JWT_ENABLED=false
         restart: unless-stopped
         stop_grace_period: 60s
 
     onlyoffice-documentserver-token:
-        image: onlyoffice/documentserver:6.2.0
+        image: onlyoffice/documentserver:7.3.2
         networks:
             onlyoffice:
                 aliases:
@@ -188,7 +189,6 @@ services:
             - JWT_ENABLED=true
             - JWT_SECRET=}@jqK3X.]ZP^2=35
             - JWT_HEADER=Authorization
-            - JWT_IN_BODY=true
         restart: unless-stopped
         stop_grace_period: 60s
 
