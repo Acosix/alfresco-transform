@@ -12,7 +12,7 @@ Despite Spring not being used within the common base project or specific transfo
 
 ## Common configuration properties
 
-|| Property || Default || Remarks ||
+| Property | Default | Remarks |
 | :--- | :--- | :--- |
 | application.name | (varies) | Name of the application - used in transform test / log pages - purely cosmetic |
 | application.version | (varies) | Version of the specific transformer - used in the `/version` API endpoint for potential use/display in ACS |
@@ -33,7 +33,7 @@ Despite Spring not being used within the common base project or specific transfo
 
 These properties specify general global SSL configuration properties, which are generally used to specify how the transformer's own HTTP server API should be secured, but also used as default values for any HTTP client configuration a specific transformer may add. The majority of these properties can be directly traced to configuration properties on [Jetty's SslContextFactory class](https://github.com/eclipse/jetty.project/blob/jetty-10.0.x/jetty-util/src/main/java/org/eclipse/jetty/util/ssl/SslContextFactory.java).
 
-|| Property || Default || Remarks ||
+| Property | Default | Remarks |
 | :--- | :--- | :--- |
 | application.ssl | `false` | Toggle whether HTTP API uses SSL/TLS or not |
 | application.ssl.certAlias |  | Alias within the keystore for the servers certificate |
@@ -71,7 +71,7 @@ The Shared File Store accessor used in this project supports SSL/TLS encrypted c
 
 In addition to SSL configuration, the Shared File Store accessor supports the following configuration properties:
 
-|| Property || Default || Remarks ||
+| Property | Default | Remarks |
 | :--- | :--- | :--- |
 | sfs.url |  | The base URL to the Shared File Store service - if the URL begins with `https://`, the SSL configuration will be loaded, otherwise no SSL communication (even if redirect to HTTPS) is supported |
 | sfs.responseTimeoutMillis | `5000` | The response timeout in milliseconds to use when any operation on the Shared File Store is called |
