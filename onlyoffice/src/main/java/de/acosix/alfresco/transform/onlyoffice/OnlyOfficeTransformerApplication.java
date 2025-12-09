@@ -122,7 +122,9 @@ public class OnlyOfficeTransformerApplication extends TransformerApplication
     {
         final HandlerList handlerList = super.createEndpoints();
 
-        handlerList.addHandler(new SourceFileAccessHandler(this.context, this.sharedFileAccessor));
+        final SourceFileAccessHandler sourceFileAccessHandler = new SourceFileAccessHandler(this.context, this.sharedFileAccessor);
+        sourceFileAccessHandler.setTokenManager(this.tokenManager);
+        handlerList.addHandler(sourceFileAccessHandler);
 
         return handlerList;
     }

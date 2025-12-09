@@ -20,6 +20,7 @@ import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.alfresco.transform.client.model.config.TransformOption;
@@ -109,9 +110,9 @@ public class TestFormHandler extends AbstractHandler
         writer.write("\t\t\t\t</tbody>\n");
 
         final Map<String, Set<TransformOption>> rootTransformOptions = this.registry.getAllRootTransformOptions();
-        for (final Set<TransformOption> rootSet : rootTransformOptions.values())
+        for (final Entry<String, Set<TransformOption>> rootSetEntry : rootTransformOptions.entrySet())
         {
-            this.writeOptionSet(writer, rootSet);
+            this.writeOptionSet(writer, rootSetEntry.getKey(), rootSetEntry.getValue());
         }
 
         writer.write("\t\t\t\t<tbody>\n");
@@ -123,15 +124,19 @@ public class TestFormHandler extends AbstractHandler
         writer.write("\t</div>\n\t<div>\n\t\t<a href=\"/log\">Log entries</a>\n\t</div>\n</body>\n</html>");
     }
 
-    private void writeOptionSet(final Writer writer, final Set<TransformOption> options) throws IOException
+    private void writeOptionSet(final Writer writer, final String name, final Set<TransformOption> options) throws IOException
     {
         writer.write("\t\t\t\t<tbody>\n");
-        writer.write("\t\t\t\t\t<tr><td class=\"optionGroupStart\" colspan=\"2\">Start option group</td>");
+        writer.write("\t\t\t\t\t<tr><td class=\"optionGroupStart\" colspan=\"2\">Start option group &quot;");
+        Encode.forHtml(writer, name);
+        writer.write("&quot;</td>");
         for (final TransformOption option : options)
         {
             this.writeOption(writer, option);
         }
-        writer.write("\t\t\t\t\t<tr><td class=\"optionGroupEnd\" colspan=\"2\">End option group</td>");
+        writer.write("\t\t\t\t\t<tr><td class=\"optionGroupEnd\" colspan=\"2\">End option group &quot;");
+        Encode.forHtml(writer, name);
+        writer.write("&quot;</td>");
         writer.write("\t\t\t\t</tbody>\n");
     }
 

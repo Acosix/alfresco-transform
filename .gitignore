@@ -6,6 +6,9 @@ bin/
 
 dependency-reduced-pom.xml
 
+# for local non-Docker executions of transformers
+request.log
+
 # for any SSL related files used in Docker Compose-based testing
 *.jks
 *.pem

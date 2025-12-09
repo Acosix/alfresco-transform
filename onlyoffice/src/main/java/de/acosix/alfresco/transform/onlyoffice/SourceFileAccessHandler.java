@@ -128,6 +128,7 @@ public class SourceFileAccessHandler extends AbstractHandler
             else
             {
                 LOGGER.warn("OnlyOffice sent authorization token but transformer was not configured to use / validate tokens");
+                validAuthorization = false;
             }
         }
         else if (this.tokenManager != null)

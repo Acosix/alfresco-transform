@@ -89,3 +89,5 @@ Both Legacy and Local Transform Clients are configured by specifying properties 
 ## Configuration loader for Transform Registry detached from application
 
 The component responsible for loading (remote) configuration from T-Engines in transform registries (e.g. `LocalTransformServiceRegistry`) use a statically initialised Quartz-based job scheduler. This scheduler is fully detached from the default Quartz-scheduler in use within ACS, and so those scheduled jobs are not manageable e.g. via the Alfresco / OOTBee Support Tools addons. Additionally, the scheduler is not properly embedded with the Spring lifecycle of the ACS application, so that it is not properly terminated when the application context stops / fails to start. This can generate an immense overhead of error logs e.g. when a failure to start Alfresco is not detected quickly, making analysis of the startup error more cumbersome.
+
+## TBD: 6.x supported transform ordering values maxSourceSize over priority (bugged if larger)

@@ -9,7 +9,7 @@ COPY startTransformer.sh logback-debug.xml transformer.properties /var/lib/acosi
 
 RUN mkdir /etc/service/acosix-transformer \
   && ln -s /var/lib/acosix-transformer/startTransformer.sh /etc/service/acosix-transformer/run \
-  && chmod +x /etc/service/acosix-transformer/run
+  && chmod +x /var/lib/acosix-transformer/startTransformer.sh
 
 LABEL vendor="${docker.labels.vendor}" \
    ${docker.labels.namespace}.version="${project.version.majorVersion}.${project.version.minorVersion}.${project.version.incrementalVersion}" \
