@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 - 2022 Acosix GmbH
+ * Copyright 2021 - 2026 Acosix GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,11 +41,15 @@ public final class RequestConstants
 
     public static final String TARGET_MIMETYPE = "targetMimetype";
 
-    public static final Collection<String> NON_TRANSFORMATION_PARAMETER_NAMES = Collections.unmodifiableList(
-            Arrays.asList(TIMEOUT, SOURCE_EXTENSION, TARGET_EXTENSION, SOURCE_MIMETYPE, TARGET_MIMETYPE, "testDelay", "transformName"));
+    public static final String SOURCE_NODE_REF = "sourceNodeRef";
 
-    public static final Collection<String> NON_TRANSFORMATION_SELECTOR_PARAMETER_NAMES = Collections
-            .unmodifiableList(Arrays.asList(SOURCE_ENCODING, "transformName", "alfresco.transform-name-parameter"));
+    public static final String DIRECT_ACCESS_URL = "directAccessUrl";
+
+    public static final Collection<String> NON_TRANSFORMATION_PARAMETER_NAMES = Collections.unmodifiableList(Arrays.asList(TIMEOUT,
+            SOURCE_EXTENSION, TARGET_EXTENSION, SOURCE_MIMETYPE, TARGET_MIMETYPE, SOURCE_NODE_REF, "testDelay", "transformName"));
+
+    public static final Collection<String> NON_TRANSFORMATION_SELECTOR_PARAMETER_NAMES = Collections.unmodifiableList(
+            Arrays.asList(SOURCE_ENCODING, DIRECT_ACCESS_URL, "transformName", "alfresco.transform-name-parameter", "file"));
 
     private RequestConstants()
     {

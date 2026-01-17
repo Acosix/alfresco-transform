@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 - 2022 Acosix GmbH
+ * Copyright 2021 - 2026 Acosix GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,4 +36,11 @@ public interface TransformerPipelineConfig extends TransformerConfigState
      * @return the transformation pipeline steps
      */
     List<TransformStep> getPipelineSteps();
+
+    /**
+     * Retrieves the local transformer configurations that must be available / active in order to expose this transformation.
+     * 
+     * @return the required local transformations by name
+     */
+    List<String> getLocalDependencies();
 }

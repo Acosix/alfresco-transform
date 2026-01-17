@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 - 2022 Acosix GmbH
+ * Copyright 2021 - 2026 Acosix GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -543,14 +543,11 @@ public class TransformHandler extends ContextAwareHandler
         final Map<String, String> parameters = new HashMap<>();
         final Enumeration<String> parameterNames = request.getParameterNames();
         parameterNames.asIterator().forEachRemaining(name -> {
-            if (!RequestConstants.NON_TRANSFORMATION_PARAMETER_NAMES.contains(name))
-            {
-                final String parameterValue = request.getParameter(name);
+            final String parameterValue = request.getParameter(name);
 
-                if (parameterValue != null && !parameterValue.isBlank())
-                {
-                    parameters.put(name, parameterValue);
-                }
+            if (parameterValue != null && !parameterValue.isBlank())
+            {
+                parameters.put(name, parameterValue);
             }
         });
 

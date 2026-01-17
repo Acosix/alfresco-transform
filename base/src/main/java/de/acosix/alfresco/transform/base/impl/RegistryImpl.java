@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 - 2022 Acosix GmbH
+ * Copyright 2021 - 2026 Acosix GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.alfresco.transform.client.model.config.SupportedSourceAndTarget;
@@ -42,7 +43,6 @@ import org.alfresco.transform.client.model.config.TransformOptionValue;
 import de.acosix.alfresco.transform.base.Context;
 import de.acosix.alfresco.transform.base.MetadataExtracter;
 import de.acosix.alfresco.transform.base.Registry;
-import de.acosix.alfresco.transform.base.RequestConstants;
 import de.acosix.alfresco.transform.base.Transformer;
 import de.acosix.alfresco.transform.base.TransformerConfigState;
 import de.acosix.alfresco.transform.base.TransformerFailoverConfig;
@@ -221,34 +221,35 @@ public class RegistryImpl implements Registry
         final TransformConfig config = new TransformConfig();
         config.setTransformOptions(this.rootTransformOptions);
 
-        config.setTransformers(this.knownTransformerConfigs.entrySet().stream().map(entry -> {
-            final String name = entry.getKey();
-            final TransformerConfigState transformerConfig = entry.getValue();
-            final org.alfresco.transform.client.model.config.Transformer t = new org.alfresco.transform.client.model.config.Transformer(
-                    name, transformerConfig.getTransformOptions(), transformerConfig.getSupportedTransformations());
+        config.setTransformers(
+                this.knownTransformerConfigs.entrySet().stream().filter(entry -> isSupported(entry.getValue())).map(entry -> {
+                    final String name = entry.getKey();
+                    final TransformerConfigState transformerConfig = entry.getValue();
+                    final org.alfresco.transform.client.model.config.Transformer t = new org.alfresco.transform.client.model.config.Transformer(
+                            name, transformerConfig.getTransformOptions(), transformerConfig.getSupportedTransformations());
 
-            if (this.registeredExtracters.containsKey(name))
-            {
-                final MetadataExtracter extracter = this.registeredExtracters.get(name);
-                t.getTransformOptions().addAll(extracter.getTransformOptions());
+                    if (this.registeredExtracters.containsKey(name))
+                    {
+                        final MetadataExtracter extracter = this.registeredExtracters.get(name);
+                        t.getTransformOptions().addAll(extracter.getTransformOptions());
 
-                final Set<SupportedSourceAndTarget> supported = t.getSupportedSourceAndTargetList();
-                for (final String sourceMimetype : extracter.getSupportedSourceMimetypes())
-                {
-                    supported.add(new SupportedSourceAndTarget(sourceMimetype, ALFRESCO_METADATA_EXTRACT, -1));
-                }
-            }
-            else if (transformerConfig instanceof TransformerPipelineConfig)
-            {
-                t.setTransformerPipeline(((TransformerPipelineConfig) transformerConfig).getPipelineSteps());
-            }
-            else if (transformerConfig instanceof TransformerFailoverConfig)
-            {
-                t.setTransformerFailover(((TransformerFailoverConfig) transformerConfig).getFailoverTransformers());
-            }
+                        final Set<SupportedSourceAndTarget> supported = t.getSupportedSourceAndTargetList();
+                        for (final String sourceMimetype : extracter.getSupportedSourceMimetypes())
+                        {
+                            supported.add(new SupportedSourceAndTarget(sourceMimetype, ALFRESCO_METADATA_EXTRACT, -1));
+                        }
+                    }
+                    else if (transformerConfig instanceof TransformerPipelineConfig)
+                    {
+                        t.setTransformerPipeline(((TransformerPipelineConfig) transformerConfig).getPipelineSteps());
+                    }
+                    else if (transformerConfig instanceof TransformerFailoverConfig)
+                    {
+                        t.setTransformerFailover(((TransformerFailoverConfig) transformerConfig).getFailoverTransformers());
+                    }
 
-            return t;
-        }).collect(Collectors.toList()));
+                    return t;
+                }).collect(Collectors.toList()));
 
         this.registeredExtracters.entrySet().stream().filter(e -> !this.registeredTransformers.containsKey(e.getKey())).map(entry -> {
             final String name = entry.getKey();
@@ -262,6 +263,21 @@ public class RegistryImpl implements Registry
         this.jsonMapper.writeValue(writer, config);
     }
 
+    private boolean isSupported(final TransformerConfigState transformerConfig)
+    {
+        boolean result = true;
+
+        // only pipeline transformers currently have potential restrictions to be checked
+        if (transformerConfig instanceof TransformerPipelineConfig)
+        {
+            List<String> localDependencies = ((TransformerPipelineConfig) transformerConfig).getLocalDependencies();
+            result = localDependencies.isEmpty() || localDependencies.stream()
+                    .allMatch(s -> this.knownTransformerConfigs.containsKey(s) && this.isSupported(this.knownTransformerConfigs.get(s)));
+        }
+
+        return result;
+    }
+
     private boolean supportsOptions(final Transformer transformer, final Map<String, String> options)
     {
         final Collection<String> transformerOptionProfiles = transformer.getTransformOptions();
@@ -269,14 +285,14 @@ public class RegistryImpl implements Registry
         transformerOptionProfiles.forEach(profile -> this.rootTransformOptions.get(profile)
                 .forEach(option -> this.collectOptionFields(option, true, false, transformOptions, options)));
 
+        final List<String> nonSelectorParameterNames = this.context.getMultiValuedProperty("application.nonSelectorParameterNames");
+
         final boolean allRequiredOptionsProvided = transformOptions.entrySet().stream().filter(Entry::getValue).map(Entry::getKey)
                 .allMatch(k -> (options.containsKey(k) && options.get(k) != null && !options.get(k).isBlank())
                         || this.getDefaultOption(transformer.getName(), k) != null);
         final boolean containsOnlySupportedOptions = options.entrySet().stream()
                 .filter(e -> e.getValue() != null && !e.getValue().isBlank()).map(Entry::getKey)
-                .filter(k -> !RequestConstants.NON_TRANSFORMATION_PARAMETER_NAMES.contains(k)
-                        && !RequestConstants.NON_TRANSFORMATION_SELECTOR_PARAMETER_NAMES.contains(k))
-                .allMatch(transformOptions::containsKey);
+                .filter(Predicate.not(nonSelectorParameterNames::contains)).allMatch(transformOptions::containsKey);
 
         return allRequiredOptionsProvided && containsOnlySupportedOptions;
     }

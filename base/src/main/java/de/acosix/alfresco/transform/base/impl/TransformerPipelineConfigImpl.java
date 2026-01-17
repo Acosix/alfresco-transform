@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 - 2022 Acosix GmbH
+ * Copyright 2021 - 2026 Acosix GmbH
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,8 @@ public class TransformerPipelineConfigImpl extends AbstractTransformerConfigStat
 
     private final List<TransformStep> pipelineSteps = new ArrayList<>();
 
+    private final List<String> localDependencies = new ArrayList<>();
+
     protected TransformerPipelineConfigImpl(final String name, final Context context)
     {
         super(name, context);
@@ -48,6 +50,15 @@ public class TransformerPipelineConfigImpl extends AbstractTransformerConfigStat
         // steps are mutable, so need deep-copy
         return this.pipelineSteps.stream().map(s -> new TransformStep(s.getTransformerName(), s.getTargetMediaType()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public List<String> getLocalDependencies()
+    {
+        return new ArrayList<>(this.localDependencies);
     }
 
     /**
@@ -69,6 +80,7 @@ public class TransformerPipelineConfigImpl extends AbstractTransformerConfigStat
         super.readExtendedConfig(prefix);
 
         final List<String> transformers = this.context.getMultiValuedProperty(prefix + "transformerNames");
+        final List<String> localDependencies = this.context.getMultiValuedProperty(prefix + "localDependencies");
         final List<String> intermediateTypes = this.context.getMultiValuedProperty(prefix + "intermediateTypes");
 
         if (transformers == null || transformers.isEmpty() || intermediateTypes == null || intermediateTypes.isEmpty()
@@ -85,6 +97,11 @@ public class TransformerPipelineConfigImpl extends AbstractTransformerConfigStat
 
             final TransformStep step = new TransformStep(transformer, intermediateType);
             this.pipelineSteps.add(step);
+        }
+
+        if (localDependencies != null)
+        {
+            this.localDependencies.addAll(localDependencies);
         }
     }
 
