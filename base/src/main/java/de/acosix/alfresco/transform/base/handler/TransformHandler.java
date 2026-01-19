@@ -33,15 +33,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.alfresco.transform.client.model.TransformReply;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.api.Response;
+import org.eclipse.jetty.client.dynamic.HttpClientTransportDynamic;
+import org.eclipse.jetty.client.util.InputStreamResponseListener;
+import org.eclipse.jetty.http.HttpFields;
+import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.MimeTypes;
+import org.eclipse.jetty.io.ClientConnector;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.UrlEncoded;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.eclipse.jetty.util.ssl.SslContextFactory.Client;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,6 +95,10 @@ public class TransformHandler extends ContextAwareHandler
     // request messages
     private final MultipartConfigElement multiPartConfig;
 
+    private final int directAccessUrlResponseReadTimeout;
+
+    private final HttpClient directAccessUrlClient;
+
     public TransformHandler(final Context context, final Registry registry, final TransformationLog transformationLog,
             final SharedFileAccessor sharedFileAccessor)
     {
@@ -99,6 +115,23 @@ public class TransformHandler extends ContextAwareHandler
         final long maxRequestSize = context.getLongProperty("application.multipartRequest.maxRequestSize", -1, -1, Long.MAX_VALUE);
 
         this.multiPartConfig = new MultipartConfigElement(tmpDir.toString(), maxFileSize, maxRequestSize, 1024 * 100);
+
+        this.directAccessUrlResponseReadTimeout = context.getIntegerProperty("directAccessUrl.responseTimeoutMillis", 5000, 0, 300000);
+
+        // always support SSL since we don't know what kind of directAccessUrls will be provided
+        final Client sslContextFactory = context.getSslContextFactory("directAccessUrl.ssl", SslContextFactory.Client::new);
+        final ClientConnector clientConnector = new ClientConnector();
+        clientConnector.setSslContextFactory(sslContextFactory);
+        this.directAccessUrlClient = new HttpClient(new HttpClientTransportDynamic(clientConnector));
+
+        try
+        {
+            this.directAccessUrlClient.start();
+        }
+        catch (final Exception e)
+        {
+            throw new IllegalStateException("Failed to start client for direct access URLs", e);
+        }
     }
 
     /**
@@ -147,19 +180,20 @@ public class TransformHandler extends ContextAwareHandler
     private void handleMultiPartRequest(final HttpServletRequest request, final HttpServletResponse response, final MutableEntry logEntry)
             throws IOException, ServletException
     {
-        final Part filePart = this.getPart(request, "file", true);
+        final Part filePart = this.getPart(request, "file", false);
         final String targetExtension = this.getParameter(request, RequestConstants.TARGET_EXTENSION, true);
         // Alfresco transformer apps have both mimetypes as non-required in API, which is a lie
         // if not provided, transformer registry lookup will report error later on
         // we require target mimetype and try to fall back on content type in provided file for source
         String sourceMimetype = this.getParameter(request, RequestConstants.SOURCE_MIMETYPE, false);
-        if (sourceMimetype == null || sourceMimetype.isBlank())
+        if (filePart != null && (sourceMimetype == null || sourceMimetype.isBlank()))
         {
             sourceMimetype = filePart.getContentType();
         }
         final String targetMimetype = this.getParameter(request, RequestConstants.TARGET_MIMETYPE, true);
         final String timeout = this.getParameter(request, RequestConstants.TIMEOUT, false);
         final Long timeoutL = timeout != null && !timeout.isBlank() ? Long.parseLong(timeout) : null;
+        final String directAccessUrl = this.getParameter(request, RequestConstants.DIRECT_ACCESS_URL, filePart == null);
         final Map<String, String> transformationRequestParameters = this.getTransformationRequestParameters(request);
 
         logEntry.recordRequestValues(sourceMimetype, -1, targetMimetype, transformationRequestParameters);
@@ -167,7 +201,11 @@ public class TransformHandler extends ContextAwareHandler
                 "Handling multipart/form-data transformation request from source mimetype {} to target {}, using extension {}, timeout {} and request parameters {}",
                 sourceMimetype, targetMimetype, targetExtension, timeout != null ? timeout : "(default)", transformationRequestParameters);
 
-        final String sourceFileName = this.getEffectiveSourceFileName(filePart);
+        String sourceFileName = this.getParameter(request, RequestConstants.SOURCE_FILENAME, filePart == null);
+        if (filePart != null && (sourceFileName == null || sourceFileName.isBlank()))
+        {
+            sourceFileName = this.getEffectiveSourceFileName(filePart);
+        }
 
         Path sourceFile = null;
         Path targetFile = null;
@@ -177,7 +215,14 @@ public class TransformHandler extends ContextAwareHandler
             boolean failed = false;
             try
             {
-                sourceFile = this.prepareSourceFile(filePart, sourceFileName);
+                if (directAccessUrl != null && !directAccessUrl.isBlank())
+                {
+                    sourceFile = this.prepareSourceFile(directAccessUrl, sourceFileName);
+                }
+                else
+                {
+                    sourceFile = this.prepareSourceFile(filePart, sourceFileName);
+                }
 
                 // sourceFile should now be in local temporary files, so there should be no IOException
                 final long sourceSize = Files.size(sourceFile);
@@ -196,6 +241,7 @@ public class TransformHandler extends ContextAwareHandler
                 logEntry.setStatus(stex.getStatus(), messageWithCause);
                 response.sendError(stex.getStatus(), messageWithCause);
                 failed = true;
+                LOGGER.debug("Transformation failed with code {}", stex.getStatus(), stex);
             }
             catch (final Exception ex)
             {
@@ -203,6 +249,7 @@ public class TransformHandler extends ContextAwareHandler
                 logEntry.setStatus(HttpStatus.INTERNAL_SERVER_ERROR_500, messageWithCause);
                 response.sendError(HttpStatus.INTERNAL_SERVER_ERROR_500, messageWithCause);
                 failed = true;
+                LOGGER.debug("Transformation failed with unexpected error (sending 500)", ex);
             }
 
             if (!failed)
@@ -366,10 +413,79 @@ public class TransformHandler extends ContextAwareHandler
         return targetFileName;
     }
 
+    private Path prepareSourceFile(final String directAccessUrl, final String sourceFileName) throws IOException
+    {
+        LOGGER.debug("Preparing source file for {} from directAccessUrl {}", sourceFileName, directAccessUrl);
+        final Path sourceFile = this.context.createTempFile("source_", "_" + sourceFileName);
+
+        try
+        {
+            final InputStreamResponseListener listener = new InputStreamResponseListener();
+            this.directAccessUrlClient.newRequest(directAccessUrl).method(HttpMethod.GET).send(listener);
+            final Response response = listener.get(this.directAccessUrlResponseReadTimeout, TimeUnit.MILLISECONDS);
+
+            try (final InputStream is = listener.getInputStream())
+            {
+                final int status = response.getStatus();
+                final String reason = response.getReason();
+                if (status == HttpStatus.OK_200)
+                {
+                    final HttpFields headers = response.getHeaders();
+                    final long size = headers.getLongField(HttpHeader.CONTENT_LENGTH);
+
+                    try
+                    {
+                        Files.copy(is, sourceFile, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                    catch (final IOException ioex)
+                    {
+                        final long usableSpace = sourceFile.toFile().getUsableSpace();
+                        if (usableSpace <= size)
+                        {
+                            LOGGER.error("Not enough spasce available to store {} bytes from {} in {}", size, directAccessUrl, sourceFile);
+                            throw new StatusException(HttpStatus.INSUFFICIENT_STORAGE_507,
+                                    "Insufficient space to store the source file from directAccessUrl " + directAccessUrl, ioex);
+                        }
+                        throw new StatusException(HttpStatus.INTERNAL_SERVER_ERROR_500,
+                                "Failed to retrieve source file from directAccessUrl " + directAccessUrl, ioex);
+                    }
+
+                    // there may not be a Content-Length header in the response, so we check the file size itself
+                    final long fileSize = Files.size(sourceFile);
+                    if (fileSize <= 0)
+                    {
+                        throw new StatusException(HttpStatus.INTERNAL_SERVER_ERROR_500,
+                                "Failed to retrieve source file content from directAccessUrl " + directAccessUrl);
+                    }
+
+                    LOGGER.debug("Source file {} retrieved from directAccessUrl {} with {} bytes", sourceFile, directAccessUrl, size);
+                }
+                else
+                {
+                    final StringBuilder sb = new StringBuilder(128);
+                    sb.append("Failed to retrieve source file from directAccessUrl ").append(directAccessUrl)
+                            .append(" - received reponse with code ").append(status).append("(").append(reason).append(")");
+                    throw new StatusException(HttpStatus.INTERNAL_SERVER_ERROR_500, sb.toString());
+                }
+            }
+            catch (final IOException ignore)
+            {
+                // ignore - close input stream primarily as indicator to Jetty client components to discard any further received data
+            }
+        }
+        catch (final InterruptedException | ExecutionException | TimeoutException e)
+        {
+            throw new StatusException(HttpStatus.INTERNAL_SERVER_ERROR_500,
+                    "Failed to retrieve source file from directAccessUrl " + directAccessUrl, e);
+        }
+
+        return sourceFile;
+    }
+
     private Path prepareSourceFile(final Part filePart, final String sourceFileName) throws IOException
     {
-        Path sourceFile;
-        sourceFile = this.context.createTempFile("source_", "_" + sourceFileName);
+        LOGGER.debug("Preparing source file for {} from multipart data ", sourceFileName);
+        final Path sourceFile = this.context.createTempFile("source_", "_" + sourceFileName);
         try (InputStream is = filePart.getInputStream())
         {
             Files.copy(is, sourceFile, StandardCopyOption.REPLACE_EXISTING);

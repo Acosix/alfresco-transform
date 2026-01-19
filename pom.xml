@@ -20,7 +20,7 @@
 
     <groupId>de.acosix.alfresco.transform</groupId>
     <artifactId>de.acosix.alfresco.transform.parent</artifactId>
-    <version>0.3.1-SNAPSHOT</version>
+    <version>0.4.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Acosix Alfresco Transform - Parent</name>
@@ -236,6 +236,15 @@
                 <plugin>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>${maven.jar.version}</version>
+                    <configuration>
+                        <archive>
+                            <!-- manifest is actually needed to avoid i.e. logback-classic warnings in transformer startup -->
+                            <manifest>
+                                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                                <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                            </manifest>
+                        </archive>
+                    </configuration>
                     <executions>
                         <execution>
                             <goals>

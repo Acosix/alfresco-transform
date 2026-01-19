@@ -150,13 +150,16 @@ public class ContextImpl implements Context
     @Override
     public void discardTempFile(final Path tempFile)
     {
-        try
+        if (tempFile != null)
         {
-            Files.deleteIfExists(tempFile);
-        }
-        catch (final IOException ignore)
-        {
-            // ignore
+            try
+            {
+                Files.deleteIfExists(tempFile);
+            }
+            catch (final IOException ignore)
+            {
+                // ignore
+            }
         }
     }
 

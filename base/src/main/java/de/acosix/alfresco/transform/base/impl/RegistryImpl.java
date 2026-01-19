@@ -15,6 +15,7 @@
  */
 package de.acosix.alfresco.transform.base.impl;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
@@ -34,11 +35,13 @@ import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.alfresco.transform.client.model.config.SupportedSourceAndTarget;
-import org.alfresco.transform.client.model.config.TransformConfig;
-import org.alfresco.transform.client.model.config.TransformOption;
-import org.alfresco.transform.client.model.config.TransformOptionGroup;
-import org.alfresco.transform.client.model.config.TransformOptionValue;
+import org.alfresco.transform.config.SupportedSourceAndTarget;
+import org.alfresco.transform.config.TransformConfig;
+import org.alfresco.transform.config.TransformOption;
+import org.alfresco.transform.config.TransformOptionGroup;
+import org.alfresco.transform.config.TransformOptionValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.acosix.alfresco.transform.base.Context;
 import de.acosix.alfresco.transform.base.MetadataExtracter;
@@ -54,6 +57,8 @@ import de.acosix.alfresco.transform.base.TransformerPipelineConfig;
  */
 public class RegistryImpl implements Registry
 {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RegistryImpl.class);
 
     // pseudo mimetype used in Alfresco's transform framework to pipe extraction through transformation focused API
     // awful design, but have to support it
@@ -71,7 +76,8 @@ public class RegistryImpl implements Registry
 
     private final Map<String, MetadataExtracter> registeredExtracters = new HashMap<>();
 
-    private final JsonMapper jsonMapper = JsonMapper.builder().build();
+    private final JsonMapper jsonMapper = JsonMapper.builder()
+            .defaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_ABSENT, JsonInclude.Include.NON_ABSENT)).build();
 
     public RegistryImpl(final Context context)
     {
@@ -218,15 +224,18 @@ public class RegistryImpl implements Registry
     @Override
     public void writeTransformConfigJSON(final Writer writer) throws IOException
     {
+        final String coreVersion = this.context.getStringProperty("application.coreVersion");
+
         final TransformConfig config = new TransformConfig();
         config.setTransformOptions(this.rootTransformOptions);
 
         config.setTransformers(
-                this.knownTransformerConfigs.entrySet().stream().filter(entry -> isSupported(entry.getValue())).map(entry -> {
+                this.knownTransformerConfigs.entrySet().stream().filter(entry -> this.supportsTransform(entry.getValue())).map(entry -> {
                     final String name = entry.getKey();
                     final TransformerConfigState transformerConfig = entry.getValue();
-                    final org.alfresco.transform.client.model.config.Transformer t = new org.alfresco.transform.client.model.config.Transformer(
-                            name, transformerConfig.getTransformOptions(), transformerConfig.getSupportedTransformations());
+                    final org.alfresco.transform.config.Transformer t = new org.alfresco.transform.config.Transformer(name,
+                            transformerConfig.getTransformOptions(), transformerConfig.getSupportedTransformations());
+                    t.setCoreVersion(coreVersion);
 
                     if (this.registeredExtracters.containsKey(name))
                     {
@@ -236,7 +245,7 @@ public class RegistryImpl implements Registry
                         final Set<SupportedSourceAndTarget> supported = t.getSupportedSourceAndTargetList();
                         for (final String sourceMimetype : extracter.getSupportedSourceMimetypes())
                         {
-                            supported.add(new SupportedSourceAndTarget(sourceMimetype, ALFRESCO_METADATA_EXTRACT, -1));
+                            supported.add(this.toSourceAndTarget(sourceMimetype, ALFRESCO_METADATA_EXTRACT));
                         }
                     }
                     else if (transformerConfig instanceof TransformerPipelineConfig)
@@ -254,25 +263,42 @@ public class RegistryImpl implements Registry
         this.registeredExtracters.entrySet().stream().filter(e -> !this.registeredTransformers.containsKey(e.getKey())).map(entry -> {
             final String name = entry.getKey();
             final MetadataExtracter extracter = entry.getValue();
-            return new org.alfresco.transform.client.model.config.Transformer(name, extracter.getTransformOptions(),
-                    extracter.getSupportedSourceMimetypes().stream()
-                            .map(mimetype -> new SupportedSourceAndTarget(mimetype, ALFRESCO_METADATA_EXTRACT, -1))
-                            .collect(Collectors.toSet()));
+            final org.alfresco.transform.config.Transformer t = new org.alfresco.transform.config.Transformer(name,
+                    extracter.getTransformOptions(), extracter.getSupportedSourceMimetypes().stream()
+                            .map(mimetype -> this.toSourceAndTarget(mimetype, ALFRESCO_METADATA_EXTRACT)).collect(Collectors.toSet()));
+            t.setCoreVersion(coreVersion);
+            return t;
         }).collect(Collectors.toCollection(config::getTransformers));
 
         this.jsonMapper.writeValue(writer, config);
     }
 
-    private boolean isSupported(final TransformerConfigState transformerConfig)
+    private SupportedSourceAndTarget toSourceAndTarget(final String sourceMimetype, final String targetMimetype)
+    {
+        return this.toSourceAndTarget(sourceMimetype, targetMimetype, null, null);
+    }
+
+    private SupportedSourceAndTarget toSourceAndTarget(final String sourceMimetype, final String targetMimetype,
+            final Long maxSourceSizeBytes, final Integer priority)
+    {
+        final SupportedSourceAndTarget supportedSourceAndTarget = new SupportedSourceAndTarget();
+        supportedSourceAndTarget.setSourceMediaType(sourceMimetype);
+        supportedSourceAndTarget.setTargetMediaType(targetMimetype);
+        supportedSourceAndTarget.setMaxSourceSizeBytes(maxSourceSizeBytes);
+        supportedSourceAndTarget.setPriority(priority);
+        return supportedSourceAndTarget;
+    }
+
+    private boolean supportsTransform(final TransformerConfigState transformerConfig)
     {
         boolean result = true;
 
         // only pipeline transformers currently have potential restrictions to be checked
         if (transformerConfig instanceof TransformerPipelineConfig)
         {
-            List<String> localDependencies = ((TransformerPipelineConfig) transformerConfig).getLocalDependencies();
-            result = localDependencies.isEmpty() || localDependencies.stream()
-                    .allMatch(s -> this.knownTransformerConfigs.containsKey(s) && this.isSupported(this.knownTransformerConfigs.get(s)));
+            final List<String> localDependencies = ((TransformerPipelineConfig) transformerConfig).getLocalDependencies();
+            result = localDependencies.isEmpty() || localDependencies.stream().allMatch(
+                    s -> this.knownTransformerConfigs.containsKey(s) && this.supportsTransform(this.knownTransformerConfigs.get(s)));
         }
 
         return result;
@@ -287,12 +313,16 @@ public class RegistryImpl implements Registry
 
         final List<String> nonSelectorParameterNames = this.context.getMultiValuedProperty("application.nonSelectorParameterNames");
 
+        final String transformerName = transformer.getName();
         final boolean allRequiredOptionsProvided = transformOptions.entrySet().stream().filter(Entry::getValue).map(Entry::getKey)
                 .allMatch(k -> (options.containsKey(k) && options.get(k) != null && !options.get(k).isBlank())
-                        || this.getDefaultOption(transformer.getName(), k) != null);
+                        || this.getDefaultOption(transformerName, k) != null);
         final boolean containsOnlySupportedOptions = options.entrySet().stream()
                 .filter(e -> e.getValue() != null && !e.getValue().isBlank()).map(Entry::getKey)
                 .filter(Predicate.not(nonSelectorParameterNames::contains)).allMatch(transformOptions::containsKey);
+
+        LOGGER.debug("Option support check result for transformer {}: allRequiredOptionsProvided={} containsOnlySupportedOptions={}",
+                transformerName, allRequiredOptionsProvided, containsOnlySupportedOptions);
 
         return allRequiredOptionsProvided && containsOnlySupportedOptions;
     }
@@ -305,7 +335,7 @@ public class RegistryImpl implements Registry
             // due to Alfresco's engine.json structure, root groups can never be trigger sub-elements' required state by being flagged
             // required themselves
             final boolean triggerSubElementRequirement = (!isRoot && currentElement.isRequired())
-                    || this.isPresent(currentElement, providedOptions);
+                    || this.isOptionPresent(currentElement, providedOptions);
             ((TransformOptionGroup) currentElement).getTransformOptions().stream().forEach(
                     se -> this.collectOptionFields(se, false, triggerSubElementRequirement, requiredFlagByOption, providedOptions));
         }
@@ -324,13 +354,13 @@ public class RegistryImpl implements Registry
      *     the options provided by the client
      * @return {@code true} if the element (or any of its sub-elements) is present, {@code false} otherwise
      */
-    private boolean isPresent(final TransformOption currentElement, final Map<String, String> providedOptions)
+    private boolean isOptionPresent(final TransformOption currentElement, final Map<String, String> providedOptions)
     {
         boolean present = false;
         if (currentElement instanceof TransformOptionGroup)
         {
             present = ((TransformOptionGroup) currentElement).getTransformOptions().stream()
-                    .anyMatch(se -> this.isPresent(se, providedOptions));
+                    .anyMatch(se -> this.isOptionPresent(se, providedOptions));
         }
         else if (currentElement instanceof TransformOptionValue)
         {

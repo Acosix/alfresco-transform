@@ -17,7 +17,7 @@ package de.acosix.alfresco.transform.base;
 
 import java.util.Set;
 
-import org.alfresco.transform.client.model.config.SupportedSourceAndTarget;
+import org.alfresco.transform.config.SupportedSourceAndTarget;
 
 /**
  * Instances of this interface encapsulate the configuration state of a specific transformer

@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.alfresco.transform.client.model.config.TransformStep;
+import org.alfresco.transform.config.TransformStep;
 
 import de.acosix.alfresco.transform.base.Context;
 import de.acosix.alfresco.transform.base.TransformerPipelineConfig;

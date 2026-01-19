@@ -17,7 +17,7 @@ package de.acosix.alfresco.transform.base;
 
 import java.util.List;
 
-import org.alfresco.transform.client.model.config.TransformStep;
+import org.alfresco.transform.config.TransformStep;
 
 /**
  * Instances of this interface encapsulate the configuration of a pipeline transformer. Pipeline transformers are configuration-only

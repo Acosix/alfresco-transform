@@ -43,13 +43,15 @@ public final class RequestConstants
 
     public static final String SOURCE_NODE_REF = "sourceNodeRef";
 
+    public static final String SOURCE_FILENAME = "sourceFilename";
+
     public static final String DIRECT_ACCESS_URL = "directAccessUrl";
 
     public static final Collection<String> NON_TRANSFORMATION_PARAMETER_NAMES = Collections.unmodifiableList(Arrays.asList(TIMEOUT,
             SOURCE_EXTENSION, TARGET_EXTENSION, SOURCE_MIMETYPE, TARGET_MIMETYPE, SOURCE_NODE_REF, "testDelay", "transformName"));
 
-    public static final Collection<String> NON_TRANSFORMATION_SELECTOR_PARAMETER_NAMES = Collections.unmodifiableList(
-            Arrays.asList(SOURCE_ENCODING, DIRECT_ACCESS_URL, "transformName", "alfresco.transform-name-parameter", "file"));
+    public static final Collection<String> NON_TRANSFORMATION_SELECTOR_PARAMETER_NAMES = Collections.unmodifiableList(Arrays
+            .asList(SOURCE_ENCODING, SOURCE_FILENAME, DIRECT_ACCESS_URL, "transformName", "alfresco.transform-name-parameter", "file"));
 
     private RequestConstants()
     {

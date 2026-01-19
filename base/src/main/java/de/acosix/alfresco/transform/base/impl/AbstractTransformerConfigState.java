@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.alfresco.transform.client.model.config.SupportedSourceAndTarget;
+import org.alfresco.transform.config.SupportedSourceAndTarget;
 
 import de.acosix.alfresco.transform.base.Context;
 import de.acosix.alfresco.transform.base.TransformerConfigState;
@@ -171,10 +171,21 @@ public abstract class AbstractTransformerConfigState implements TransformerConfi
                 final int effectivePriority = terminalPriority != null ? terminalPriority
                         : (sourceSpecificPriority != null ? sourceSpecificPriority : defaultPriority);
 
-                final SupportedSourceAndTarget trafo = new SupportedSourceAndTarget(sourceMimetype, targetMimetype, effectiveMaxSourceSize,
+                final SupportedSourceAndTarget trafo = this.toSourceAndTarget(sourceMimetype, targetMimetype, effectiveMaxSourceSize,
                         effectivePriority);
                 transformationsForSource.putIfAbsent(targetMimetype, trafo);
             }
         }
+    }
+
+    private SupportedSourceAndTarget toSourceAndTarget(final String sourceMimetype, final String targetMimetype, final Long maxSourceSizeBytes,
+            final Integer priority)
+    {
+        final SupportedSourceAndTarget supportedSourceAndTarget = new SupportedSourceAndTarget();
+        supportedSourceAndTarget.setSourceMediaType(sourceMimetype);
+        supportedSourceAndTarget.setTargetMediaType(targetMimetype);
+        supportedSourceAndTarget.setMaxSourceSizeBytes(maxSourceSizeBytes);
+        supportedSourceAndTarget.setPriority(priority);
+        return supportedSourceAndTarget;
     }
 }

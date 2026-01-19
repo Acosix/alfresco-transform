@@ -15,7 +15,7 @@ services:
         restart: unless-stopped
 
     chrome:
-        image: acosix/baseimage-chrome-headless:20210530
+        image: acosix/baseimage-chrome-headless:20220603
         hostname: chrome
         networks:
             transformers:

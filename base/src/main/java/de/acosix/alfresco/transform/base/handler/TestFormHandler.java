@@ -23,9 +23,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.alfresco.transform.client.model.config.TransformOption;
-import org.alfresco.transform.client.model.config.TransformOptionGroup;
-import org.alfresco.transform.client.model.config.TransformOptionValue;
+import org.alfresco.transform.config.TransformOption;
+import org.alfresco.transform.config.TransformOptionGroup;
+import org.alfresco.transform.config.TransformOptionValue;
 import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.MimeTypes;
@@ -102,8 +102,11 @@ public class TestFormHandler extends AbstractHandler
 
         writer.write("\t\t\t<table>\n");
         writer.write("\t\t\t\t<tbody>\n");
-        this.writeFormControl(writer, "file *", "file", "file");
+        this.writeFormControl(writer, "file", "file", "file");
+        this.writeFormControl(writer, "directAccessUrl", "directAccessUrl", "text");
+        this.writeFormControl(writer, "sourceFilename", "sourceFilename", "text");
         this.writeFormControl(writer, "sourceMimetype *", "sourceMimetype", "text");
+        this.writeFormControl(writer, "sourceEncoding*", "sourceEncoding", "text");
         this.writeFormControl(writer, "targetExtension *", "targetExtension", "text");
         this.writeFormControl(writer, "targetMimetype *", "targetMimetype", "text");
         this.writeFormControl(writer, "timeout", "timeout", "text");

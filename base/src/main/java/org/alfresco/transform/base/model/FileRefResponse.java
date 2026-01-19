@@ -23,7 +23,7 @@
  * along with Alfresco. If not, see <http://www.gnu.org/licenses/>.
  * #L%
  */
-package org.alfresco.transformer.model;
+package org.alfresco.transform.base.model;
 
 // file copied from alfresco-transform-core, where it was in turn copied from alfresco-shared-file-store, which does not have any publicly released JARs that could be depended upon
 // Note: some automatic code changes were applied as part of the copy (e.g. final modifiers)

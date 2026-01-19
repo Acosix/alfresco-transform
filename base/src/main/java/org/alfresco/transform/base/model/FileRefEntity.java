@@ -2,7 +2,7 @@
  * #%L
  * Alfresco Transform Core
  * %%
- * Copyright (C) 2005 - 2019 Alfresco Software Limited
+ * Copyright (C) 2005 - 2022 Alfresco Software Limited
  * %%
  * This file is part of the Alfresco software.
  * -
@@ -24,12 +24,12 @@
  * along with Alfresco. If not, see <http://www.gnu.org/licenses/>.
  * #L%
  */
-package org.alfresco.transformer.model;
+package org.alfresco.transform.base.model;
 
 import java.util.Objects;
 
-//file copied from alfresco-transform-core, where it was in turn copied from alfresco-shared-file-store, which does not have any publicly released JARs that could be depended upon
-//Note: some automatic code changes were applied as part of the copy (e.g. final modifiers)
+// file copied from alfresco-transform-core, where it was in turn copied from alfresco-shared-file-store, which does not have any publicly released JARs that could be depended upon
+// Note: some automatic code changes were applied as part of the copy (e.g. final modifiers)
 /**
  * TODO: Copied from org.alfresco.store.entity (alfresco-shared-file-store). To be discussed
  *
