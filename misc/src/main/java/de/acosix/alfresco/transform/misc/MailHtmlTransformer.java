@@ -467,7 +467,7 @@ public class MailHtmlTransformer extends AbstractTransformer
                         final String disposition = part.getDisposition();
                         String contentId = ((MimeBodyPart) part).getContentID();
 
-                        if (Part.INLINE.equals(disposition) && contentId != null && !contentId.isBlank())
+                        if (contentId != null && !contentId.isBlank())
                         {
                             if (contentId.startsWith("<") && contentId.endsWith(">"))
                             {
