@@ -1,5 +1,9 @@
 
 services:
+
+    # note: token-less transform no longer works in private networks without additional config
+    # this is due to security changes in onlyoffice in 7.4-ish
+    # see https://community.onlyoffice.com/t/how-to-allow-private-ip-to-access-onlyoffice-documentserver/5755/2
     transformer-openjdk:
         image: acosix/alfresco-transform-onlyoffice:latest
         ports:
@@ -127,7 +131,7 @@ services:
         restart: unless-stopped
 
     onlyoffice-rabbitmq:
-        image: rabbitmq:3.9.28
+        image: rabbitmq:3
         networks:
             onlyoffice:
                 aliases:
@@ -143,7 +147,7 @@ services:
         restart: unless-stopped
 
     onlyoffice-documentserver:
-        image: onlyoffice/documentserver:7.3.2
+        image: onlyoffice/documentserver:9.2.1
         networks:
             onlyoffice:
                 aliases:
@@ -167,7 +171,7 @@ services:
         stop_grace_period: 60s
 
     onlyoffice-documentserver-token:
-        image: onlyoffice/documentserver:7.3.2
+        image: onlyoffice/documentserver:9.2.1
         networks:
             onlyoffice:
                 aliases:
@@ -177,7 +181,7 @@ services:
                     - onlyoffice-documentserver-token
         depends_on:
             - postgres
-            - onlyoffice-rabbitmq
+            - onlyoffice-token-rabbitmq
         environment:
             - DB_TYPE=postgres
             - DB_HOST=postgres
